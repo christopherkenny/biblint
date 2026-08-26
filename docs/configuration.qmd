@@ -2,14 +2,14 @@
 title: Configuration
 ---
 
-`biblint` keeps policy in `biblint.toml`.
-The command line chooses what to run and how to report it; it does not define the formatting policy.
+`biblint.toml` contains formatting policy, rule selection, and file discovery.
+The command line chooses the operation and output format.
 
 ## Discovery
 
-Without `--config`, biblint searches for `biblint.toml` from the input path upward.
-An explicitly supplied `--config` path takes precedence.
-A repository should normally commit one configuration file at its root so editors, local runs, and CI use the same settings.
+Without `--config`, biblint searches upward from the input path.
+An explicitly supplied config path takes precedence.
+Commit one config file at the repository root so collaborators and CI share the policy.
 
 The top-level file-selection settings apply to both `check` and `format`:
 
@@ -19,9 +19,9 @@ exclude = ["vendor/**"]
 default-exclude = true
 ```
 
-Directories recursively contribute files whose extension is `.bib`.
+Directories contribute `.bib` files recursively.
 Explicit file arguments are accepted regardless of extension.
-With the default excludes enabled, `.git/**` and `target/**` are skipped.
+With `default-exclude = true`, `.git/**` and `target/**` are skipped.
 
 ## Rule selection
 
@@ -40,14 +40,12 @@ ignore = ["unsupported_escape"]
 "generated/**" = ["formatting"]
 ```
 
-Use `all` in a selection or ignore list as a wildcard.
-If `select` is omitted, the default-enabled rules run.
-`extend-select` is useful for opt-in rules such as `key_format`, `duplicate_doi`, `duplicate_citation`, and `duplicate_abstract`.
-Per-file ignores use the same rule names and are applied after global selection.
+Use `all` as a wildcard.
+If `select` is omitted, default-enabled rules run.
+`extend-select` adds opt-in rules, while `ignore` takes precedence.
+Per-file ignores use the same rule names.
 
 ## Starter configuration
-
-This is a reasonable repository-level starting point:
 
 ```toml
 include = ["**/*.bib"]
@@ -71,20 +69,10 @@ sort-fields = ["title", "author", "year"]
 formula = "auth.lower + year + shorttitle(1,0)"
 ```
 
-The formula is optional here because it is biblint's default.
-The full formula surface is documented in [Citekey generation](key-generation.md).
+The formula is optional because it is biblint's default.
+See [Citekey generation](key-generation.md) for the available syntax.
 
-## Configuration rules
+## Validation
 
-Unknown settings are rejected rather than ignored.
-Formula syntax is validated when the configuration is loaded, including formulas in `[format.key-generation]`.
-Invalid globs and unknown rule names are also configuration errors.
-This keeps a misspelled policy from looking like a successful clean run.
-
-Formatting settings are deserialized with defaults, so a small file can change one policy without repeating every other setting:
-
-```toml
-[format]
-blank-lines = true
-sort = ["key"]
-```
+Unknown settings, rule names, invalid globs, and invalid formulas are rejected when the configuration is loaded.
+Settings not specified in the file use their defaults.

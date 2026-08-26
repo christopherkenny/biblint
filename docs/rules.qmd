@@ -3,28 +3,27 @@ title: Rules
 ---
 
 Rules report problems in a BibTeX project.
-Run `biblint rule` to list the rules in the installed binary, or `biblint rule duplicate_key` for one rule's summary and fix status.
+Run `biblint rule` to list them, or `biblint rule <name>` for one rule's summary.
 
 ## Rule reference
 
-| Rule | Default | Fix             | Purpose                                                                  |
-| ---- | :-----: | :-------------: | ------------------------------------------------------------------------ |
-| `syntax_error`  | yes     | none            | BibTeX syntax is incomplete or unbalanced.                               |
-| `formatting`  | yes     | safe/configured | The file is not in the selected canonical format.                        |
-| `missing_key`  | yes     | none            | An entry has no citation key.                                            |
-| `key_format`  | no      | none            | An existing key differs from the configured generated key.               |
-| `duplicate_key`  | yes     | none            | A citation key is used more than once.                                   |
-| `duplicate_doi`  | no      | none            | Two entries share a DOI.                                                 |
-| `duplicate_citation`  | no      | none            | Two entries share a normalized author/title/number citation fingerprint. |
-| `duplicate_abstract`  | no      | none            | Two entries share the first 100 normalized abstract characters.          |
-| `duplicate_field` | yes     | none            | An entry repeats a field name.                                           |
-| `empty_field` | yes     | none            | A field has no value.                                                    |
-| `unsupported_escape` | yes     | none            | A character has no built-in LaTeX escape.                                |
-| `unsupported_construct` | yes     | none            | Source was preserved because biblint could not structure it.             |
+| Rule | Default | Fix             | Purpose                                                  |
+| ---- | :-----: | :-------------: | -------------------------------------------------------- |
+| `syntax_error`  | yes     | none            | BibTeX syntax is incomplete or unbalanced.               |
+| `formatting`  | yes     | safe/configured | The file is not in the selected canonical format.        |
+| `missing_key`  | yes     | none            | An entry has no citation key.                            |
+| `key_format`  | no      | none            | An existing key differs from the configured key formula. |
+| `duplicate_key`  | yes     | none            | A citation key is used more than once.                   |
+| `duplicate_doi`  | no      | none            | Two entries share a DOI.                                 |
+| `duplicate_citation`  | no      | none            | Two entries share a normalized citation fingerprint.     |
+| `duplicate_abstract`  | no      | none            | Two entries share an abstract fingerprint.               |
+| `duplicate_field` | yes     | none            | An entry repeats a field name.                           |
+| `empty_field` | yes     | none            | A field has no value.                                    |
+| `unsupported_escape` | yes     | none            | A character has no built-in LaTeX escape.                |
+| `unsupported_construct` | yes     | none            | Source was preserved because it could not be structured. |
 
-`syntax_error` diagnostics have error severity.
-Most structural problems are warnings.
-Unsupported escapes and preserved source are notes because biblint has kept the original content intact.
+`syntax_error` has error severity.
+Most other structural problems are warnings; preserved source and unsupported characters are notes.
 
 ## Selecting rules
 
@@ -35,10 +34,10 @@ extend-select = ["key_format", "duplicate_doi"]
 ignore = ["unsupported_escape"]
 ```
 
-`select` replaces the default-enabled set.
-`extend-select` adds rules to it, and `ignore` always wins.
+`select` replaces the default set.
+`extend-select` adds rules, and `ignore` takes precedence.
 Use `all` as a wildcard.
-Per-file exceptions use the same names:
+Per-file exceptions use the same rule names:
 
 ```toml
 [lint.per-file-ignores]
@@ -47,12 +46,8 @@ Per-file exceptions use the same names:
 
 ## Project-level checks
 
-When checking a directory or multiple files, biblint also compares entries across files.
-This catches repeated keys and enabled DOI, citation, or abstract fingerprints that a single-file check cannot see.
-Diagnostics include a related location for the first occurrence.
-
-The optional duplicate rules are disabled by default because DOI, citation, and abstract matches need a judgment about whether two records are actually the same work.
-Enable only the comparisons useful for the project.
+When checking a directory or multiple files, biblint also detects duplicates across files.
+DOI, citation, and abstract rules are disabled by default; enable only the comparisons useful for the project.
 
 ## Key-format checks
 
@@ -67,5 +62,5 @@ extend-select = ["key_format"]
 style = "better-bibtex"
 ```
 
-The rule reports a suggested key but does not attach an automatic rename fix.
-The configured formula and the key-generation transform share one evaluator; see [Citekey generation](key-generation.md) for the compatibility boundary.
+The rule reports a suggestion but does not rename keys automatically.
+See [Citekey generation](key-generation.md) to configure the formula.
