@@ -1,7 +1,7 @@
 //! Lint rules, diagnostics, and formatting orchestration for biblint.
 
 use biblint_format::{better_bibtex_key_suggestions_with_formula_and_suffix, format_document};
-use biblint_syntax::{Document, Item, ParseError, TextRange, parse};
+use biblint_syntax::{Document, Item, ParseError, TextRange, Value, parse};
 use globset::GlobBuilder;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -68,6 +68,8 @@ pub enum Rule {
     DuplicateAbstract,
     DuplicateField,
     EmptyField,
+    NonstandardNameSeparator,
+    InvalidSuppression,
     UnsupportedEscape,
     UnsupportedConstruct,
 }
@@ -84,6 +86,8 @@ impl Rule {
         Self::DuplicateAbstract,
         Self::DuplicateField,
         Self::EmptyField,
+        Self::NonstandardNameSeparator,
+        Self::InvalidSuppression,
         Self::UnsupportedEscape,
         Self::UnsupportedConstruct,
     ];
@@ -101,6 +105,8 @@ impl Rule {
             Self::DuplicateAbstract => "duplicate_abstract",
             Self::DuplicateField => "duplicate_field",
             Self::EmptyField => "empty_field",
+            Self::NonstandardNameSeparator => "nonstandard_name_separator",
+            Self::InvalidSuppression => "invalid_suppression",
             Self::UnsupportedEscape => "unsupported_escape",
             Self::UnsupportedConstruct => "unsupported_construct",
         }
@@ -110,7 +116,7 @@ impl Rule {
     pub const fn summary(self) -> &'static str {
         match self {
             Self::SyntaxError => "BibTeX syntax is incomplete or unbalanced",
-            Self::Formatting => "the document is not in biblint's canonical format",
+            Self::Formatting => "the file would be reformatted by biblint",
             Self::MissingKey => "an entry does not have a citation key",
             Self::KeyFormat => "a citation key does not match the configured format",
             Self::DuplicateKey => "a citation key is used more than once",
@@ -121,6 +127,10 @@ impl Rule {
             Self::DuplicateAbstract => "two entries have the same abstract prefix",
             Self::DuplicateField => "an entry repeats a field name",
             Self::EmptyField => "a field has no value",
+            Self::NonstandardNameSeparator => {
+                "a name-list field uses a non-BibTeX creator separator"
+            }
+            Self::InvalidSuppression => "a suppression comment is invalid or obsolete",
             Self::UnsupportedEscape => "a character has no built-in LaTeX escape",
             Self::UnsupportedConstruct => "the formatter preserved source it does not understand",
         }
@@ -131,6 +141,7 @@ impl Rule {
         !matches!(
             self,
             Self::KeyFormat
+                | Self::Formatting
                 | Self::DuplicateDoi
                 | Self::DuplicateCitation
                 | Self::DuplicateAbstract
@@ -150,6 +161,8 @@ impl Rule {
             | Self::DuplicateAbstract
             | Self::DuplicateField
             | Self::EmptyField
+            | Self::NonstandardNameSeparator
+            | Self::InvalidSuppression
             | Self::UnsupportedEscape
             | Self::UnsupportedConstruct => None,
         }
@@ -348,15 +361,39 @@ fn path_matches(pattern: &str, path: &str) -> bool {
 pub struct CheckedDocument {
     pub parse: Document,
     pub diagnostics: Vec<Diagnostic>,
+    suppressions: Vec<Suppression>,
 }
 
-/// Check one source string.  Formatting is represented as one safe whole-file
-/// fix, while semantic observations remain diagnostics that require a human
+#[derive(Clone, Debug)]
+struct Suppression {
+    rule: Rule,
+    target: TextRange,
+    directive: TextRange,
+}
+
+#[derive(Clone, Debug)]
+struct SuppressionIssue {
+    range: TextRange,
+    message: String,
+}
+
+#[derive(Clone, Debug, Default)]
+struct SuppressionParse {
+    entries: Vec<Suppression>,
+    issues: Vec<SuppressionIssue>,
+}
+
+/// Check one source string. Formatting is represented as one whole-file fix,
+/// while semantic observations remain diagnostics that require a human
 /// decision.
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDocument {
     let parsed = parse(source);
+    let SuppressionParse {
+        entries: suppressions,
+        issues: suppression_issues,
+    } = parse_suppressions(&parsed, source);
     let mut diagnostics = parsed
         .errors
         .iter()
@@ -461,6 +498,13 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
             if value.is_empty() {
                 diagnostics.push(empty_field_diagnostic(field, path));
             }
+            if is_name_list_field(&field.name) {
+                for separator in detect_name_separators(value) {
+                    diagnostics.push(nonstandard_name_separator_diagnostic(
+                        field, path, separator,
+                    ));
+                }
+            }
             if settings.format.escape
                 && !settings.format.unescape
                 && !matches!(
@@ -553,11 +597,14 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
         if formatted.output != source {
             diagnostics.push(Diagnostic {
                 rule: Rule::Formatting,
-                severity: Severity::Warning,
-                message: "file is not canonically formatted".to_string(),
+                severity: Severity::Note,
+                message: "file would be reformatted".to_string(),
                 path: path.to_path_buf(),
                 range: TextRange::new(0, source.len()),
-                help: Some("run `biblint format` or use `biblint check --fix`".to_string()),
+                help: Some(
+                    "run `biblint format <path> --diff` or use `biblint check --format --fix`"
+                        .to_string(),
+                ),
                 related: Vec::new(),
                 fix: Some(TextEdit {
                     range: TextRange::new(0, source.len()),
@@ -571,11 +618,28 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
             });
         }
     }
-    diagnostics.retain(|diagnostic| settings.rule_enabled_for_path(diagnostic.rule, path));
+    for issue in suppression_issues {
+        diagnostics.push(invalid_suppression_diagnostic(&issue, path));
+    }
+    for suppression in &suppressions {
+        let used = diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule == suppression.rule
+                && settings.rule_enabled_for_path(diagnostic.rule, path)
+                && ranges_intersect(diagnostic.range, suppression.target)
+        });
+        if !used {
+            diagnostics.push(outdated_suppression_diagnostic(suppression, path));
+        }
+    }
+    diagnostics.retain(|diagnostic| {
+        settings.rule_enabled_for_path(diagnostic.rule, path)
+            && !suppression_applies(&suppressions, diagnostic.rule, diagnostic.range)
+    });
     diagnostics.sort_by_key(|diagnostic| (diagnostic.range.start, diagnostic.range.end));
     CheckedDocument {
         parse: parsed,
         diagnostics,
+        suppressions,
     }
 }
 
@@ -627,6 +691,19 @@ pub fn check_sources(sources: &[(PathBuf, String)], settings: &Settings) -> Vec<
                 let id = (rule, fingerprint);
                 if let Some((previous_path, previous_range, previous_key)) = seen.get(&id) {
                     if previous_path != path {
+                        if suppression_applies(&document.suppressions, rule, location) {
+                            for suppression in document.suppressions.iter().filter(|suppression| {
+                                suppression.rule == rule
+                                    && ranges_intersect(suppression.target, location)
+                            }) {
+                                remove_outdated_suppression_diagnostic(
+                                    &mut diagnostics,
+                                    path,
+                                    suppression.directive,
+                                );
+                            }
+                            continue;
+                        }
                         let message = if rule == Rule::DuplicateKey {
                             format!("citation key '{key}' has already been used")
                         } else {
@@ -689,6 +766,284 @@ fn empty_field_diagnostic(field: &biblint_syntax::Field, path: &Path) -> Diagnos
         path: path.to_path_buf(),
         range: field.range,
         help: Some("remove the field or provide a value".to_string()),
+        related: Vec::new(),
+        fix: None,
+    }
+}
+
+fn parse_suppressions(document: &Document, source: &str) -> SuppressionParse {
+    let mut result = SuppressionParse::default();
+    for (index, item) in document.items.iter().enumerate() {
+        let Item::Comment(comment) = item else {
+            continue;
+        };
+        let Some(parsed) = parse_suppression_comment(&comment.text) else {
+            continue;
+        };
+        let rules = match parsed {
+            Ok(rules) => rules,
+            Err(message) => {
+                result.issues.push(SuppressionIssue {
+                    range: comment.range,
+                    message,
+                });
+                continue;
+            }
+        };
+        if !is_standalone_comment(source, comment.range) {
+            result.issues.push(SuppressionIssue {
+                range: comment.range,
+                message: "suppression comments must be on their own line before an entry"
+                    .to_string(),
+            });
+            continue;
+        }
+        let Some(target) = next_entry_range(document, index) else {
+            result.issues.push(SuppressionIssue {
+                range: comment.range,
+                message: "suppression comment is not followed by a BibTeX entry".to_string(),
+            });
+            continue;
+        };
+        result
+            .entries
+            .extend(rules.into_iter().map(|rule| Suppression {
+                rule,
+                target,
+                directive: comment.range,
+            }));
+    }
+    result
+}
+
+fn parse_suppression_comment(text: &str) -> Option<Result<Vec<Rule>, String>> {
+    let text = text.trim_start();
+    let text = text.strip_prefix('%')?.trim_start();
+    let remainder = text.strip_prefix("biblint-ignore")?;
+    if let Some(character) = remainder.chars().next()
+        && !character.is_whitespace()
+    {
+        if matches!(character, ':' | '-') {
+            return Some(Err(
+                "only next-entry suppressions are supported; use `% biblint-ignore <rule> [<rule> ...][: <reason>]`"
+                    .to_string(),
+            ));
+        }
+        return None;
+    }
+    let payload = remainder.trim();
+    if payload.is_empty() {
+        return Some(Err("suppression must name at least one rule".to_string()));
+    }
+
+    let rules_text = payload
+        .split_once(':')
+        .map_or(payload, |(rules, _reason)| rules)
+        .trim();
+    if rules_text.is_empty() {
+        return Some(Err("suppression must name at least one rule".to_string()));
+    }
+
+    let mut rules = Vec::new();
+    for rule_name in rules_text.split_whitespace() {
+        let Some(rule) = Rule::from_name(rule_name) else {
+            return Some(Err(format!("unknown biblint rule '{rule_name}'")));
+        };
+        if matches!(
+            rule,
+            Rule::SyntaxError | Rule::Formatting | Rule::InvalidSuppression
+        ) {
+            return Some(Err(format!(
+                "rule '{}' cannot be suppressed with an entry comment",
+                rule.name()
+            )));
+        }
+        rules.push(rule);
+    }
+    Some(Ok(rules))
+}
+
+fn is_standalone_comment(source: &str, range: TextRange) -> bool {
+    let line_start = source[..range.start]
+        .rfind('\n')
+        .map_or(0, |position| position + 1);
+    source[line_start..range.start].trim().is_empty()
+}
+
+fn next_entry_range(document: &Document, comment_index: usize) -> Option<TextRange> {
+    for item in document.items.iter().skip(comment_index + 1) {
+        match item {
+            Item::Entry(entry) => return Some(entry.range),
+            Item::Comment(_) => {}
+            Item::Raw(raw) if raw.text.trim().is_empty() => {}
+            Item::Raw(_) | Item::Special(_) => return None,
+        }
+    }
+    None
+}
+
+fn invalid_suppression_diagnostic(issue: &SuppressionIssue, path: &Path) -> Diagnostic {
+    Diagnostic {
+        rule: Rule::InvalidSuppression,
+        severity: Severity::Warning,
+        message: issue.message.clone(),
+        path: path.to_path_buf(),
+        range: issue.range,
+        help: Some(
+            "use `% biblint-ignore <rule> [<rule> ...][: <reason>]` before the intended entry, or remove the directive"
+                .to_string(),
+        ),
+        related: Vec::new(),
+        fix: None,
+    }
+}
+
+fn outdated_suppression_diagnostic(suppression: &Suppression, path: &Path) -> Diagnostic {
+    invalid_suppression_diagnostic(
+        &SuppressionIssue {
+            range: suppression.directive,
+            message: format!(
+                "suppression for '{}' is obsolete; it matches no diagnostic",
+                suppression.rule.name()
+            ),
+        },
+        path,
+    )
+}
+
+fn remove_outdated_suppression_diagnostic(
+    diagnostics: &mut Vec<Diagnostic>,
+    path: &Path,
+    directive: TextRange,
+) {
+    diagnostics.retain(|diagnostic| {
+        !(diagnostic.rule == Rule::InvalidSuppression
+            && diagnostic.path.as_path() == path
+            && diagnostic.range == directive
+            && diagnostic.message.contains("matches no diagnostic"))
+    });
+}
+
+fn ranges_intersect(left: TextRange, right: TextRange) -> bool {
+    left.start < right.end && right.start < left.end
+}
+
+fn suppression_applies(suppressions: &[Suppression], rule: Rule, range: TextRange) -> bool {
+    suppressions
+        .iter()
+        .any(|suppression| suppression.rule == rule && ranges_intersect(suppression.target, range))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NameSeparator {
+    With,
+    OxfordComma,
+}
+
+fn is_name_list_field(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "author" | "editor" | "translator" | "collaborator"
+    )
+}
+
+fn detect_name_separators(value: &Value) -> Vec<NameSeparator> {
+    let mut has_with = false;
+    let mut has_oxford_comma = false;
+    for part in &value.parts {
+        let text = part.render();
+        let mut depth = 0usize;
+        for (position, character) in text.char_indices() {
+            match character {
+                '{' if !is_escaped(text, position) => {
+                    depth += 1;
+                    continue;
+                }
+                '}' if !is_escaped(text, position) => {
+                    depth = depth.saturating_sub(1);
+                    continue;
+                }
+                _ => {}
+            }
+            if depth != 0 {
+                continue;
+            }
+            if matches!(character, 'w' | 'W') && has_word_at(text, position, "with") {
+                has_with = true;
+            }
+            if character == ','
+                && !is_escaped(text, position)
+                && has_word_after_comma(text, position, "and")
+            {
+                has_oxford_comma = true;
+            }
+        }
+    }
+    let mut separators = Vec::new();
+    if has_with {
+        separators.push(NameSeparator::With);
+    }
+    if has_oxford_comma {
+        separators.push(NameSeparator::OxfordComma);
+    }
+    separators
+}
+
+fn has_word_at(text: &str, position: usize, word: &str) -> bool {
+    let Some(candidate) = text.get(position..position + word.len()) else {
+        return false;
+    };
+    let previous = text[..position].chars().next_back();
+    let following = text[position + word.len()..].chars().next();
+    candidate.eq_ignore_ascii_case(word)
+        && previous.is_some_and(char::is_whitespace)
+        && following.is_some_and(char::is_whitespace)
+}
+
+fn has_word_after_comma(text: &str, position: usize, word: &str) -> bool {
+    let after_comma = &text[position + 1..];
+    let trimmed = after_comma.trim_start();
+    let Some(candidate) = trimmed.get(..word.len()) else {
+        return false;
+    };
+    let following = trimmed[word.len()..].chars().next();
+    candidate.eq_ignore_ascii_case(word) && following.is_some_and(char::is_whitespace)
+}
+
+fn is_escaped(text: &str, position: usize) -> bool {
+    let backslashes = text[..position]
+        .chars()
+        .rev()
+        .take_while(|character| *character == '\\')
+        .count();
+    backslashes % 2 == 1
+}
+
+fn nonstandard_name_separator_diagnostic(
+    field: &biblint_syntax::Field,
+    path: &Path,
+    separator: NameSeparator,
+) -> Diagnostic {
+    let (message, help) = match separator {
+        NameSeparator::With => (
+            format!("field '{}' uses 'with' as a creator separator", field.name),
+            "BibTeX separates creators with `and`; use `and` if these are separate creators, or brace an intended literal name".to_string(),
+        ),
+        NameSeparator::OxfordComma => (
+            format!(
+                "field '{}' has a comma before 'and' in a creator list",
+                field.name
+            ),
+            "BibTeX treats commas as part of a name; separate creators with `and` and brace an intended literal name".to_string(),
+        ),
+    };
+    Diagnostic {
+        rule: Rule::NonstandardNameSeparator,
+        severity: Severity::Warning,
+        message,
+        path: path.to_path_buf(),
+        range: field.range,
+        help: Some(help),
         related: Vec::new(),
         fix: None,
     }
@@ -927,7 +1282,7 @@ fn configured(path: &Path, root: Option<&Path>, settings: &Settings) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        KeyFormatSettings, KeyFormatStyle, LintSettings, Rule, Settings, check_source,
+        KeyFormatSettings, KeyFormatStyle, LintSettings, Rule, Settings, Severity, check_source,
         check_sources,
     };
     use biblint_format::{CollisionSuffixStyle, FormatOptions, Indent};
@@ -935,10 +1290,17 @@ mod tests {
 
     #[test]
     fn reports_duplicate_keys_and_offers_formatting_fix() {
+        let settings = Settings {
+            lint: LintSettings {
+                extend_select: vec!["formatting".to_string()],
+                ..LintSettings::default()
+            },
+            ..Settings::default()
+        };
         let checked = check_source(
             "@article{A,title={x}}\n@article{a,title={y}}\n",
             Path::new("refs.bib"),
-            &Settings::default(),
+            &settings,
         );
         assert!(
             checked
@@ -948,6 +1310,24 @@ mod tests {
         );
         assert!(
             checked
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule == Rule::Formatting)
+        );
+        assert!(checked.diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule == Rule::Formatting && diagnostic.severity == Severity::Note
+        }));
+    }
+
+    #[test]
+    fn formatting_is_not_enabled_by_default() {
+        let checked = check_source(
+            "@ARTICLE{key,title=\"A title\"}\n",
+            Path::new("refs.bib"),
+            &Settings::default(),
+        );
+        assert!(
+            !checked
                 .diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.rule == Rule::Formatting)
@@ -1099,6 +1479,130 @@ mod tests {
         );
         assert!(checked.diagnostics.iter().any(|diagnostic| {
             diagnostic.rule == Rule::UnsupportedEscape && diagnostic.message.contains("U+21B3")
+        }));
+    }
+
+    #[test]
+    fn detects_nonstandard_name_separators_but_respects_fields_and_braces() {
+        let source = "@article{with,author={Simson Garfinkel with Gene Spafford},title={A with B}}\n\
+            @article{comma,editor={Gretchen Stevens, Gary King, and Kenji Shibuya},title={A}}\n\
+            @article{protected,author={{Smith, Jones, and Associates}},translator={John Withers and Jane Doe}}\n";
+        let checked = check_source(source, Path::new("refs.bib"), &Settings::default());
+        let diagnostics = checked
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule == Rule::NonstandardNameSeparator)
+            .collect::<Vec<_>>();
+        assert_eq!(diagnostics.len(), 2);
+        assert!(diagnostics.iter().any(|diagnostic| {
+            diagnostic.message.contains("uses 'with'")
+                && diagnostic.severity == Severity::Warning
+                && diagnostic.fix.is_none()
+        }));
+        assert!(
+            diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.message.contains("comma before 'and'") })
+        );
+    }
+
+    #[test]
+    fn inline_suppressions_apply_to_the_next_entry() {
+        let source = "% biblint-ignore nonstandard_name_separator\n\
+            @article{ignored,author={Simson Garfinkel with Gene Spafford},title={A}}\n\
+            @article{reported,author={Simson Garfinkel with Gene Spafford},title={B}}\n";
+        let checked = check_source(source, Path::new("refs.bib"), &Settings::default());
+        let diagnostics = checked
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule == Rule::NonstandardNameSeparator)
+            .collect::<Vec<_>>();
+        assert_eq!(diagnostics.len(), 1);
+        assert!(
+            !checked
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule == Rule::InvalidSuppression)
+        );
+    }
+
+    #[test]
+    fn inline_suppressions_can_name_multiple_rules() {
+        let source = "% biblint-ignore nonstandard_name_separator duplicate_field\n\
+            @article{ignored,author={A with B},title={A},title={B}}\n\
+            % biblint-ignore nonstandard_name_separator\n\
+            % biblint-ignore duplicate_field\n\
+            @article{also_ignored,author={A with B},title={A},title={B}}\n";
+        let checked = check_source(source, Path::new("refs.bib"), &Settings::default());
+        assert!(!checked.diagnostics.iter().any(|diagnostic| {
+            matches!(
+                diagnostic.rule,
+                Rule::NonstandardNameSeparator | Rule::DuplicateField
+            )
+        }));
+        assert!(
+            !checked
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.rule == Rule::InvalidSuppression)
+        );
+    }
+
+    #[test]
+    fn invalid_inline_suppressions_are_reported() {
+        let source = "% biblint-ignore not_a_rule: typo\n\
+            @article{unknown,author={A with B},title={A}}\n\
+            % biblint-ignore nonstandard_name_separator: stale\n\
+            @article{stale,author={A and B},title={C}}\n\
+            % biblint-ignore nonstandard_name_separator: no following entry\n";
+        let checked = check_source(source, Path::new("refs.bib"), &Settings::default());
+        let invalid = checked
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.rule == Rule::InvalidSuppression)
+            .collect::<Vec<_>>();
+        assert_eq!(invalid.len(), 3);
+        assert!(
+            invalid
+                .iter()
+                .any(|diagnostic| { diagnostic.message.contains("unknown biblint rule") })
+        );
+        assert!(
+            invalid
+                .iter()
+                .any(|diagnostic| { diagnostic.message.contains("matches no diagnostic") })
+        );
+        assert!(invalid.iter().any(|diagnostic| {
+            diagnostic
+                .message
+                .contains("not followed by a BibTeX entry")
+        }));
+        assert!(checked.diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule == Rule::NonstandardNameSeparator
+                && diagnostic.message.contains("uses 'with'")
+        }));
+    }
+
+    #[test]
+    fn inline_suppressions_apply_to_cross_file_duplicates() {
+        let sources = vec![
+            (
+                std::path::PathBuf::from("one.bib"),
+                "@article{shared,title={A}}\n".to_string(),
+            ),
+            (
+                std::path::PathBuf::from("two.bib"),
+                "% biblint-ignore duplicate_key: intentionally shared key\n@article{shared,title={B}}\n"
+                    .to_string(),
+            ),
+        ];
+        let diagnostics = check_sources(&sources, &Settings::default());
+        assert!(!diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule == Rule::DuplicateKey && diagnostic.path == Path::new("two.bib")
+        }));
+        assert!(!diagnostics.iter().any(|diagnostic| {
+            diagnostic.rule == Rule::InvalidSuppression
+                && diagnostic.message.contains("matches no diagnostic")
         }));
     }
 

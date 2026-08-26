@@ -45,6 +45,10 @@ If `select` is omitted, default-enabled rules run.
 `extend-select` adds opt-in rules, while `ignore` takes precedence.
 Per-file ignores use the same rule names.
 
+The `formatting` rule is opt-in for `check`.
+Use `biblint check --format` for a one-off check or add it to `select`/`extend-select` in the configuration.
+`biblint format --check` checks formatting independently of lint rule selection.
+
 ## Starter configuration
 
 ```toml

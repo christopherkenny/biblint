@@ -265,7 +265,7 @@ impl Default for FormatOptions {
         Self {
             indent: Indent::Spaces(DEFAULT_SPACE),
             align: None,
-            blank_lines: false,
+            blank_lines: true,
             lowercase: true,
             curly: false,
             numeric: false,
@@ -1965,6 +1965,13 @@ mod tests {
             result.output,
             "@article{key,\n  title = {A title},\n  author = \"Smith\",\n  year = {2024}\n}\n"
         );
+    }
+
+    #[test]
+    fn separates_entries_with_a_blank_line_by_default() {
+        let source = "@article{first,title={First}}\n@article{second,title={Second}}";
+        let result = format_document(&parse(source), &FormatOptions::default());
+        assert!(result.output.contains("}\n\n@article{second"));
     }
 
     #[test]

@@ -267,94 +267,37 @@ pub(super) fn field_value<'a>(entry: &'a Entry, name: &str) -> Option<&'a Value>
 }
 
 pub(super) fn split_creators(value: &str) -> Vec<String> {
-    split_top_level_word(value, "with")
-        .into_iter()
-        .flat_map(|part| split_top_level_word(&part, "and"))
-        .flat_map(|part| split_comma_separated_creators(&part))
-        .map(|creator| trim_creator_separator(&creator).to_string())
-        .filter(|creator| !creator.is_empty())
-        .collect()
-}
-
-fn split_top_level_word(value: &str, wanted: &str) -> Vec<String> {
-    let Some(first) = wanted.chars().next() else {
-        return vec![value.to_string()];
-    };
-    let mut parts = Vec::new();
+    let mut creators = Vec::new();
     let mut start = 0usize;
     let mut depth = 0usize;
-    for (position, character) in value.char_indices() {
+    let characters = value.char_indices().collect::<Vec<_>>();
+    for (position, character) in &characters {
         match character {
-            '{' if !is_escaped(value, position) => depth += 1,
-            '}' if !is_escaped(value, position) => depth = depth.saturating_sub(1),
+            '{' if !is_escaped(value, *position) => depth += 1,
+            '}' if !is_escaped(value, *position) => depth = depth.saturating_sub(1),
+            'a' | 'A' if depth == 0 => {
+                let end = *position + character.len_utf8();
+                let Some(word) = value.get(*position..end + 2) else {
+                    continue;
+                };
+                let previous = value[..*position].chars().next_back();
+                let following = value[end + 2..].chars().next();
+                if word.eq_ignore_ascii_case("and")
+                    && previous.is_some_and(char::is_whitespace)
+                    && following.is_some_and(char::is_whitespace)
+                {
+                    creators.push(value[start..*position].trim().to_string());
+                    start = end + 2;
+                }
+            }
             _ => {}
         }
-        if depth != 0 || !character.eq_ignore_ascii_case(&first) {
-            continue;
-        }
-        let Some(candidate) = value.get(position..position + wanted.len()) else {
-            continue;
-        };
-        let previous = value[..position].chars().next_back();
-        let following = value[position + wanted.len()..].chars().next();
-        if candidate.eq_ignore_ascii_case(wanted)
-            && !is_escaped(value, position)
-            && previous.is_some_and(char::is_whitespace)
-            && following.is_some_and(char::is_whitespace)
-        {
-            parts.push(value[start..position].to_string());
-            start = position + wanted.len();
-        }
     }
-    parts.push(value[start..].to_string());
-    parts
-}
-
-fn split_comma_separated_creators(value: &str) -> Vec<String> {
-    let parts = split_top_level_character(value, ',');
-    let candidates = parts
-        .iter()
-        .map(|part| part.trim())
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>();
-    let has_trailing_comma = value.trim_end().ends_with(',');
-    let looks_like_creator_list = has_trailing_comma
-        && candidates.len() > 1
-        && candidates
-            .iter()
-            .all(|part| part.split_whitespace().count() >= 2);
-    if looks_like_creator_list {
-        candidates.into_iter().map(str::to_string).collect()
-    } else {
-        vec![value.to_string()]
-    }
-}
-
-fn split_top_level_character(value: &str, separator: char) -> Vec<String> {
-    let mut parts = Vec::new();
-    let mut start = 0usize;
-    let mut depth = 0usize;
-    for (position, character) in value.char_indices() {
-        match character {
-            '{' if !is_escaped(value, position) => depth += 1,
-            '}' if !is_escaped(value, position) => depth = depth.saturating_sub(1),
-            _ => {}
-        }
-        if depth == 0 && character == separator && !is_escaped(value, position) {
-            parts.push(value[start..position].to_string());
-            start = position + character.len_utf8();
-        }
-    }
-    parts.push(value[start..].to_string());
-    parts
-}
-
-fn trim_creator_separator(value: &str) -> &str {
-    value.trim().trim_end_matches(',').trim()
+    creators.push(value[start..].trim().to_string());
+    creators
 }
 
 pub(super) fn creator_surname(value: &str, single_field: bool) -> String {
-    let value = trim_creator_separator(value);
     let visible = visible_text(value).trim().to_string();
     if visible.is_empty() {
         return visible;
@@ -872,8 +815,8 @@ mod tests {
         let document = parse(
             r"@book{one,editor={Gary King and Kay Schlozman and Norman Nie},year=2009}
                @book{two,author={Gary King},year=1997}
-               @article{three,author={Gretchen Stevens, Gary King, and Kenji Shibuya},year=2010}
-               @article{four,author={Christopher Adolph and Gary King, with Michael C. Herron and Kenneth W. Shotts},year={In press, 2003}}
+               @article{three,author={Gretchen Stevens and Gary King and Kenji Shibuya},year=2010}
+               @article{four,author={Christopher Adolph and Gary King and Michael C. Herron and Kenneth W. Shotts},year={In press, 2003}}
                @article{five,author={King, Gary and Margaret E. Roberts},year=2015}",
         );
         let suggestions = better_bibtex_key_suggestions_with_formula_and_suffix(
@@ -893,6 +836,28 @@ mod tests {
                 "SteKinShi10".to_string(),
                 "AdoKinHer03".to_string(),
                 "KinRob15".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn uses_only_and_as_a_creator_list_separator() {
+        assert_eq!(
+            super::split_creators("King, Gary and Margaret E. Roberts"),
+            vec!["King, Gary".to_string(), "Margaret E. Roberts".to_string()]
+        );
+        assert_eq!(
+            super::split_creators("Gary King, with Michael Herron and Kenneth Shotts"),
+            vec![
+                "Gary King, with Michael Herron".to_string(),
+                "Kenneth Shotts".to_string()
+            ]
+        );
+        assert_eq!(
+            super::split_creators("Gretchen Stevens, Gary King, and Kenji Shibuya"),
+            vec![
+                "Gretchen Stevens, Gary King,".to_string(),
+                "Kenji Shibuya".to_string()
             ]
         );
     }

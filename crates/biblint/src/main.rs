@@ -22,7 +22,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Check BibTeX files for syntax, duplicate, and formatting issues.
+    /// Check BibTeX files for syntax and lint issues.
     Check(CheckArgs),
     /// Canonically format BibTeX files.
     Format(FormatArgs),
@@ -34,6 +34,9 @@ enum Command {
 struct CheckArgs {
     #[arg(default_value = ".")]
     paths: Vec<PathBuf>,
+    /// Include the canonical formatting check.
+    #[arg(long)]
+    format: bool,
     /// Apply safe formatting fixes in place.
     #[arg(long)]
     fix: bool,
@@ -91,7 +94,13 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
 
 fn run_check(args: &CheckArgs) -> Result<ExitCode, String> {
     let base = args.paths.first().map_or(Path::new("."), PathBuf::as_path);
-    let (settings, _) = load_settings(base, args.config.as_deref())?;
+    let (mut settings, _) = load_settings(base, args.config.as_deref())?;
+    if args.format {
+        settings
+            .lint
+            .extend_select
+            .push(Rule::Formatting.name().to_string());
+    }
     if is_stdin(&args.paths) {
         let mut source = read_stdin()?;
         let mut checked = check_source(&source, Path::new("<stdin>"), &settings);
@@ -239,20 +248,22 @@ fn print_diagnostics(
 }
 
 fn print_text_diagnostic(diagnostic: &Diagnostic, source: &str, sources: &[(PathBuf, String)]) {
-    let (line, column) = line_column(source, diagnostic.range.start);
     let severity = match diagnostic.severity {
         Severity::Error => "error",
         Severity::Warning => "warning",
         Severity::Note => "note",
     };
     println!(
-        "{severity}[{}]: {}\n  --> {}:{}:{}",
+        "{severity}[{}]: {}",
         diagnostic.rule.name(),
-        diagnostic.message,
-        diagnostic.path.display(),
-        line,
-        column
+        diagnostic.message
     );
+    if diagnostic.rule == Rule::Formatting {
+        println!("  --> {}", diagnostic.path.display());
+    } else {
+        let (line, column) = line_column(source, diagnostic.range.start);
+        println!("  --> {}:{}:{}", diagnostic.path.display(), line, column);
+    }
     if let Some(help) = &diagnostic.help {
         println!("  help: {help}");
     }

@@ -27,7 +27,8 @@ Default output:
 }
 ```
 
-The default does not align equals signs, insert blank lines, sort entries or fields, add braces, change values, or remove duplicate and empty fields.
+The default does not align equals signs, sort entries or fields, add braces, change values, or remove duplicate and empty fields.
+It separates entries with a blank line.
 
 ## Layout and ordering
 
@@ -84,18 +85,20 @@ merge = "combine"
 
 These settings can remove information, change author lists, generate keys, or merge entries.
 `merge` accepts `first`, `last`, `combine`, and `overwrite`.
-By default it considers DOI, citation, and abstract duplicates; add `key` to `duplicate-kinds` to include key duplicates.
+By default it considers DOI, citation, and abstract duplicates.
+Add `key` to `duplicate-kinds` to include key duplicates.
 
 `generate-keys` uses the same formula evaluator as the `key_format` rule.
-See [Citekey generation](key-generation.md) for its independent Better BibTeX syntax subset.
+See [Citekey generation](key-generation.md) for a Better BibTeX syntax subset.
 
 ## Fix safety
 
-`check --fix` applies safe formatting edits by default.
+`check --format --fix` applies safe formatting edits when formatting is explicitly enabled.
+For a formatting-only policy check, use `biblint format references.bib --check`.
 Transforms that can change content or identity require:
 
 ```console
-biblint check references.bib --fix --unsafe-fixes
+biblint check references.bib --format --fix --unsafe-fixes
 ```
 
 The standalone `format` command applies the configured profile directly.

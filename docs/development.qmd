@@ -4,10 +4,10 @@ title: Development
 
 `biblint` is a Rust 2024 workspace with four crates:
 
-- `biblint-syntax` owns BibTeX parsing, source ranges, values, and preserved unstructured source;
-- `biblint-format` owns canonical rendering, value transforms, cleanup, and citekey formula evaluation;
-- `biblint-core` owns configuration, diagnostics, lint rules, fixes, file discovery, and project-level duplicate checks;
-- `biblint` owns command-line input, output, and exit codes.
+- `biblint-syntax` owns BibTeX parsing, source ranges, values, and preserved unstructured source
+- `biblint-format` owns canonical rendering, value transforms, cleanup, and citekey formula evaluation
+- `biblint-core` owns configuration, diagnostics, lint rules, fixes, file discovery, and project-level duplicate checks
+- `biblint` owns command-line input, output, and exit codes
 
 The minimum supported Rust version is 1.88.
 Keep parser, formatter, and rule changes lossless: source biblint cannot structure must remain visible rather than being dropped.

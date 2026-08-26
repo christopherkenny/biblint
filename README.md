@@ -25,7 +25,8 @@ cargo install --path crates/biblint
 
 ```console
 biblint check references.bib
-biblint check references.bib --fix
+biblint check references.bib --format
+biblint check references.bib --format --fix
 biblint check . --output json
 biblint format references.bib --check
 biblint format references.bib --diff
@@ -64,4 +65,4 @@ Additional cleanup, sorting, duplicate checks, value transforms, and citekey che
 
 The `key_format` rule is opt-in because changing a citation key can break citation references in other files.
 Its default formula is `auth.lower + year + shorttitle(1,0)`; see [citekey generation](docs/key-generation.md) for customization.
-`generate-keys = true` applies the formula as a formatter transform and requires `--unsafe-fixes` with `check --fix`.
+`generate-keys = true` applies the formula as a formatter transform and requires `--unsafe-fixes` with `check --format --fix`.

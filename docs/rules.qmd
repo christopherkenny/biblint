@@ -7,23 +7,47 @@ Run `biblint rule` to list them, or `biblint rule <name>` for one rule's summary
 
 ## Rule reference
 
-| Rule | Default | Fix             | Purpose                                                  |
-| ---- | :-----: | :-------------: | -------------------------------------------------------- |
-| `syntax_error`  | yes     | none            | BibTeX syntax is incomplete or unbalanced.               |
-| `formatting`  | yes     | safe/configured | The file is not in the selected canonical format.        |
-| `missing_key`  | yes     | none            | An entry has no citation key.                            |
-| `key_format`  | no      | none            | An existing key differs from the configured key formula. |
-| `duplicate_key`  | yes     | none            | A citation key is used more than once.                   |
-| `duplicate_doi`  | no      | none            | Two entries share a DOI.                                 |
-| `duplicate_citation`  | no      | none            | Two entries share a normalized citation fingerprint.     |
-| `duplicate_abstract`  | no      | none            | Two entries share an abstract fingerprint.               |
-| `duplicate_field` | yes     | none            | An entry repeats a field name.                           |
-| `empty_field` | yes     | none            | A field has no value.                                    |
-| `unsupported_escape` | yes     | none            | A character has no built-in LaTeX escape.                |
-| `unsupported_construct` | yes     | none            | Source was preserved because it could not be structured. |
+| Rule | Default | Fix             | Purpose                                                     |
+| ---- | :-----: | :-------------: | ----------------------------------------------------------- |
+| `syntax_error`  | yes     | none            | BibTeX syntax is incomplete or unbalanced.                  |
+| `formatting`  | no      | safe/configured | The file would be reformatted by biblint.                   |
+| `missing_key`  | yes     | none            | An entry has no citation key.                               |
+| `key_format`  | no      | none            | An existing key differs from the configured key formula.    |
+| `duplicate_key`  | yes     | none            | A citation key is used more than once.                      |
+| `duplicate_doi`  | no      | none            | Two entries share a DOI.                                    |
+| `duplicate_citation`  | no      | none            | Two entries share a normalized citation fingerprint.        |
+| `duplicate_abstract`  | no      | none            | Two entries share an abstract fingerprint.                  |
+| `duplicate_field` | yes     | none            | An entry repeats a field name.                              |
+| `empty_field` | yes     | none            | A field has no value.                                       |
+| `nonstandard_name_separator` | yes     | none            | A name-list field uses `with` or a comma before `and`.         |
+| `invalid_suppression` | yes     | none            | A suppression comment is malformed, misplaced, or obsolete. |
+| `unsupported_escape` | yes     | none            | A character has no built-in LaTeX escape.                   |
+| `unsupported_construct` | yes     | none            | Source was preserved because it could not be structured.    |
 
 `syntax_error` has error severity.
 Most other structural problems are warnings; preserved source and unsupported characters are notes.
+
+`nonstandard_name_separator` checks `author`, `editor`, `translator`, and `collaborator` values.
+It only examines text outside nested braces, does not rewrite values, and does not inspect prose fields such as `title` or `note`.
+
+## Inline suppressions
+
+A standalone `% biblint-ignore <rule> [<rule> ...][: <reason>]` comment suppresses the named rules for the next BibTeX entry:
+
+```bibtex
+% biblint-ignore nonstandard_name_separator duplicate_field
+@book{garfinkel1997,
+  author = {Simson Garfinkel with Gene Spafford},
+}
+```
+
+The reason after `:` is optional.
+Multiple comments before one entry are also combined.
+Suppressions cannot hide syntax errors or whole-file formatting diagnostics.
+Malformed, misplaced, or unused directives are reported by `invalid_suppression`.
+
+Formatting is not enabled for `check` by default because it is a mechanical rewrite rather than a content diagnostic.
+Use `check --format` to include it, select `formatting` in `biblint.toml`, or use `format --check` as a formatting-only gate.
 
 ## Selecting rules
 

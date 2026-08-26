@@ -9,8 +9,9 @@ Commit `biblint.toml` so collaborators and CI use the same policy.
 
 ```console
 biblint check .
-biblint check references.bib --fix
-biblint check references.bib --fix --unsafe-fixes
+biblint check . --format
+biblint check references.bib --format --fix
+biblint check references.bib --format --fix --unsafe-fixes
 biblint check . --output json
 biblint format references.bib
 biblint format . --check
@@ -19,8 +20,10 @@ biblint rule
 biblint rule duplicate_key
 ```
 
-`check` reports syntax, lint, and formatting diagnostics.
-`format` writes the configured representation; `--check` reports whether a file would change, and `--diff` prints the change without writing it.
+`check` reports syntax and lint diagnostics by default.
+`check --format` additionally reports whether files would be reformatted.
+`format` writes the configured representation.
+`--check` reports whether a file would change, and `--diff` prints the change without writing it.
 
 Both commands accept files, directories, and standard input (`-`).
 Directories contribute `.bib` files recursively.
@@ -32,16 +35,16 @@ Use `check` to review a project and `format` to apply its configured format:
 
 ```console
 biblint check .
-biblint check . --fix
+biblint check . --format --fix
 biblint format references.bib --diff
 ```
 
-`check --fix` applies safe formatting changes.
+`check --format --fix` applies safe formatting changes.
 Key generation, merging, field removal, brace removal, and author truncation also require `--unsafe-fixes`.
 
 ## Defaults
 
-Without a configuration file, biblint normalizes layout, entry types, and field names while preserving value spelling.
+Without a configuration file, `format` normalizes layout, entry types, and field names while preserving value spelling.
 Other transforms and optional checks are enabled in `biblint.toml`.
 
 ## Documentation

@@ -41,21 +41,35 @@ fn format_stdin_is_canonical() {
 
 #[test]
 fn check_json_reports_duplicate_keys() {
-    let output = run(
-        &["check", "-", "--output", "json"],
-        "@article{A,title={x}}\n@article{a,title={y}}\n",
-    );
+    let source = "@article{A,title={x}}\n@article{a,title={y}}\n";
+    let output = run(&["check", "-", "--output", "json"], source);
     assert_eq!(output.status.code(), Some(1));
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("duplicate_key"));
-    assert!(stdout.contains("formatting"));
+    assert!(!stdout.contains("\"rule\": \"formatting\""));
+
+    let output = run(&["check", "-", "--format", "--output", "json"], source);
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("\"rule\": \"formatting\""));
+    assert!(stdout.contains("\"severity\": \"note\""));
+}
+
+#[test]
+fn check_format_diagnostic_is_file_scoped_in_text_output() {
+    let output = run(&["check", "-", "--format"], "@ARTICLE{k,title=\"A\"}\n");
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("note[formatting]: file would be reformatted"));
+    assert!(stdout.contains("  --> <stdin>\n"));
+    assert!(!stdout.contains("<stdin>:1:1"));
 }
 
 #[test]
 fn unsafe_transforms_wait_for_unsafe_fixes() {
     let config = write_config("[format]\ngenerate-keys = true\n");
     let output = run(
-        &["check", "-", "--fix", "--config", &config],
+        &["check", "-", "--format", "--fix", "--config", &config],
         "@article{old,author={Smith, John},year=2024,title={A study}}\n",
     );
     assert_eq!(output.status.code(), Some(1));
@@ -64,7 +78,15 @@ fn unsafe_transforms_wait_for_unsafe_fixes() {
     assert!(!stdout.contains("smith2024study"));
 
     let output = run(
-        &["check", "-", "--fix", "--unsafe-fixes", "--config", &config],
+        &[
+            "check",
+            "-",
+            "--format",
+            "--fix",
+            "--unsafe-fixes",
+            "--config",
+            &config,
+        ],
         "@article{old,author={Smith, John},year=2024,title={A study}}\n",
     );
     assert!(output.status.success());
@@ -98,7 +120,15 @@ fn configured_better_bibtex_formula_controls_generation() {
         "[format]\ngenerate-keys = true\n\n[format.key-generation]\nformula = \"auth.lower + '-' + year\"\n",
     );
     let output = run(
-        &["check", "-", "--fix", "--unsafe-fixes", "--config", &config],
+        &[
+            "check",
+            "-",
+            "--format",
+            "--fix",
+            "--unsafe-fixes",
+            "--config",
+            &config,
+        ],
         "@article{old,author={Smith, John},year=2024,title={A study}}\n",
     );
     assert!(output.status.success());

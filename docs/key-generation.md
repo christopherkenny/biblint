@@ -15,10 +15,10 @@ auth.lower + year + shorttitle(1,0)
 
 It:
 
-1. uses the first creator surname, falling back through `author`, `editor`, `translator`, and `collaborator`;
-2. lowercases that surname;
-3. appends the first four digits found in `year`;
-4. appends the first significant word of `title`.
+1. uses the first creator surname, falling back through `author`, `editor`, `translator`, and `collaborator`
+2. lowercases that surname
+3. appends the first four digits found in `year`
+4. appends the first significant word of `title`
 
 `shorttitle` removes common stopwords before counting words.
 The `0` preserves the title fragment's original capitalization.
@@ -59,10 +59,10 @@ collision-suffix = "alphabetic"
 The formula is optional because the example is the default.
 `key_format` reports differences but does not rename existing keys.
 `generate-keys = true` enables replacement as a formatter transform.
-With `check --fix`, it requires `--unsafe-fixes`:
+With `check --format --fix`, it requires `--unsafe-fixes`:
 
 ```console
-biblint check references.bib --fix --unsafe-fixes
+biblint check references.bib --format --fix --unsafe-fixes
 biblint format references.bib
 ```
 
@@ -75,28 +75,28 @@ formula = "auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : a
 collision-suffix = "skip-a"
 ```
 
-Creator lists written with `and`, `with`, and an Oxford comma are understood for key generation.
+Creator lists follow standard BibTeX name syntax: separate creators with the word `and`.
 
 ## Supported formula syntax
 
 Formula names are case-insensitive.
 The evaluator supports:
 
-- direct BibTeX fields, such as `title`, `doi`, and `shortauthor`;
-- quoted strings and numbers, for example `"-"` and `2024`;
-- concatenation with `+`;
-- fallbacks with `||`, and top-level alternate patterns separated by `;` or `|`;
-- conditional composition with `&&`;
-- ternaries such as `language == "en" ? "eng" : ""`;
-- length comparisons using `==`, `!=`, `<`, `<=`, `>`, or `>=`;
-- chained filters such as `auth.lower.clean`;
-- positional and named function arguments, such as `substring(start=1,n=3)`.
+- direct BibTeX fields, such as `title`, `doi`, and `shortauthor`
+- quoted strings and numbers, for example `"-"` and `2024`
+- concatenation with `+`
+- fallbacks with `||`, and top-level alternate patterns separated by `;` or `|`
+- conditional composition with `&&`
+- ternaries such as `language == "en" ? "eng" : ""`
+- length comparisons using `==`, `!=`, `<`, `<=`, `>`, or `>=`
+- chained filters such as `auth.lower.clean`
+- positional and named function arguments, such as `substring(start=1,n=3)`
 
 The implemented entry functions are:
 
-- creators: `auth`, `authAuthEa`, `authEtAl`, `authEtal2`, `authForeIni`, `authIni`, `authorIni`, `authorLast`, `authors`, `authorsAlpha`, `authorsn`, and `authshort`;
-- entry fields and metadata: `date`, `extra`, `firstpage`, `journal`, `language`, `lastpage`, `month`, `origdate`, `origyear`, `shortyear`, `title`, `type`, and `year`;
-- title fragments: `shorttitle` and `veryshorttitle`.
+- creators: `auth`, `authAuthEa`, `authEtAl`, `authEtal2`, `authForeIni`, `authIni`, `authorIni`, `authorLast`, `authors`, `authorsAlpha`, `authorsn`, and `authshort`
+- entry fields and metadata: `date`, `extra`, `firstpage`, `journal`, `language`, `lastpage`, `month`, `origdate`, `origyear`, `shortyear`, `title`, `type`, and `year`
+- title fragments: `shorttitle` and `veryshorttitle`
 
 The implemented filters are `abbr`, `alphanum`, `ascii`, `capitalize`, `clean`, `condense`, `default`, `discard`, `len`, `lower`, `nopunct`, `nopunctordash`, `numeric`, `postfix`, `prefix`, `replace`, `select`, `skipwords`, `substring`, `transliterate`, and `upper`.
 
