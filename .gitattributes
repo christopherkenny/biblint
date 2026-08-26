@@ -1,0 +1,4 @@
+# Normalize every text file to LF in the index and the working tree.
+# This keeps rustfmt's `newline_style = "Unix"` consistent on Windows
+# checkouts, where Git would otherwise convert correctly formatted files to CRLF.
+* text=auto eol=lf
