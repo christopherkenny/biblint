@@ -1,0 +1,2 @@
+[lint]
+extend-select = ["duplicate_doi", "duplicate_citation", "duplicate_abstract"]

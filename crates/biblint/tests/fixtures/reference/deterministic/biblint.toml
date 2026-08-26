@@ -1,0 +1,5 @@
+[format]
+indent = 4
+align = false
+lowercase = true
+blank-lines = true

@@ -1,0 +1,9 @@
+[format]
+align = false
+lowercase = true
+numeric = true
+duplicate-kinds = ["key"]
+merge = "combine"
+sort = ["key"]
+sort-fields = ["title", "author", "year", "note"]
+remove-duplicate-fields = false

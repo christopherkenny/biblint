@@ -1,0 +1,65 @@
+---
+title: biblint
+---
+
+`biblint` is a deterministic Rust linter and formatter for BibTeX.
+It is designed for the post-edit pass in agentic workflows: formatting fixes are repeatable, while semantic observations such as duplicate records remain visible diagnostics.
+
+## Commands
+
+```console
+biblint check .
+biblint check references.bib --fix
+biblint check references.bib --fix --unsafe-fixes
+biblint check . --output json
+biblint format references.bib
+biblint format . --check
+biblint format references.bib --diff
+biblint rule
+biblint rule duplicate_key
+```
+
+`check` reports syntax, lint, and formatting diagnostics.
+`format` only formats files; `format --check` reports whether a file would change, and `format --diff` prints the change without writing it.
+
+Both commands accept explicit files, directories, and standard input (`-`).
+A directory contributes `.bib` files recursively.
+See [Configuration](configuration.qmd) for file discovery and policy selection.
+
+## Default behavior
+
+With no configuration file, biblint:
+
+- uses two spaces for field indentation;
+- writes fields as `field = value` with one space on each side of `=`;
+- lowercases entry types and field names;
+- preserves field order and value spelling;
+- reports syntax errors, duplicate keys and fields, missing keys, empty fields, unsupported escapes, unsupported source, and formatting differences.
+
+Alignment, sorting, cleanup, value transforms, duplicate analysis beyond keys, and key-format checking are configured explicitly.
+There are no formatter policy switches on the command line; commit `biblint.toml` so local and CI runs share the same policy.
+
+## Design
+
+The formatter changes the structured BibTeX syntax it understands.
+Source it cannot safely interpret is preserved and reported as an `unsupported_construct` note.
+Diagnostics carry source locations and, where a safe or configured transform is available, a fix.
+
+The default workflow is deliberately conservative:
+
+```console
+biblint check .
+biblint check . --fix
+```
+
+The first command observes.
+The second applies safe canonical formatting.
+Use `--unsafe-fixes` only when the checked-in configuration enables transforms that can change content or identity, such as key generation, merging, field removal, brace removal, or author truncation.
+
+## More information
+
+- [Configuration](configuration.qmd) — discovery, rule selection, and the repository policy file
+- [Formatting](formatting.qmd) — defaults and opt-in transforms
+- [Rules](rules.qmd) — diagnostics and default enablement
+- [Citekey generation](key-generation.md) — the independent Better BibTeX formula subset and Google Scholar-style default
+- [Development](development.qmd) — workspace structure and checks

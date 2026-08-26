@@ -1,0 +1,106 @@
+---
+title: Formatting
+---
+
+`biblint format` writes a canonical representation of the structured BibTeX it understands.
+The default profile is intentionally small: it normalizes layout, entry-type spelling, and field-name spelling without deciding how values or records should be rewritten.
+
+## Default shape
+
+Input:
+
+```bibtex
+@ARTICLE{Smith2024,
+author={Smith, John},
+title={A Study},
+year=2024
+}
+```
+
+Default output:
+
+```bibtex
+@article{Smith2024,
+  author = {Smith, John},
+  title = {A Study},
+  year = 2024
+}
+```
+
+The default does not align equals signs, insert blank lines, sort entries or fields, add braces, change numeric/month values, or clean up duplicate and empty fields.
+
+## Layout and ordering
+
+```toml
+[format]
+indent = 2                 # a space count, or "tab"
+align = false              # or a field-name column number
+blank-lines = true
+trailing-commas = true
+wrap = 80                  # false disables wrapping
+sort = ["key"]
+sort-fields = ["title", "author", "year"]
+```
+
+`align = false` is the explicit no-alignment setting.
+`sort = true` uses the key order, and `sort-fields = true` uses biblint's built-in field order; lists provide an explicit order.
+
+## Value transforms
+
+These settings are opt-in because they alter value spelling or representation:
+
+| Setting     | Effect                                                     |
+| ----------- | ---------------------------------------------------------- |
+| `curly`         | Enclose values in braces.                                  |
+| `numeric`         | Render numeric values as bare literals.                    |
+| `months`         | Normalize recognized month names.                          |
+| `format-page-ranges`        | Normalize page ranges.                                     |
+| `escape` / `unescape` | Convert supported text between Unicode and LaTeX forms.    |
+| `encode-urls`        | Encode URL underscores.                                    |
+| `strip-enclosing-braces`        | Remove one outer brace group.                              |
+| `enclosing-braces` / `remove-braces` | Select fields whose brace depth should change.             |
+| `drop-all-caps`        | Convert all-caps textual values to title case.             |
+| `wrap`        | Wrap long textual values at a configured width.            |
+| `lowercase`        | Lowercase entry types and field names. Enabled by default. |
+
+The escape table is deliberately package-independent.
+Characters it cannot convert are preserved and can be reported by the `unsupported_escape` rule.
+
+## Cleanup and semantic transforms
+
+```toml
+[format]
+remove-empty-fields = true
+remove-duplicate-fields = true
+omit = ["abstract"]
+strip-comments = true
+tidy-comments = true
+max-authors = 3
+generate-keys = true
+duplicate-kinds = ["doi", "citation"]
+merge = "combine"
+```
+
+Cleanup and identity-changing settings can remove information, change author lists, generate keys, or merge entries.
+`merge` accepts `first`, `last`, `combine`, and `overwrite`.
+When no `duplicate-kinds` are supplied, merge considers DOI, citation, and abstract duplicates; key duplicates are included only when `key` is listed explicitly.
+
+`generate-keys` uses the same formula evaluator as the `key_format` rule.
+See [Citekey generation](key-generation.md) for its independent Better BibTeX syntax subset.
+
+## Fix safety
+
+`check --fix` applies safe formatting edits by default.
+If the active format configuration includes a transform that can change content or identity, the formatting edit is marked unsafe and requires:
+
+```console
+biblint check references.bib --fix --unsafe-fixes
+```
+
+The standalone `format` command applies the configured format profile directly.
+This distinction makes the check workflow suitable for automated post-edit passes while leaving intentional semantic changes visible in configuration and review.
+
+## Preserved source
+
+Comments, special entries, and unstructured source are retained unless a configured transform targets them.
+If the parser cannot represent a construct, biblint preserves it and reports `unsupported_construct`; it does not discard unknown source to make the output appear clean.

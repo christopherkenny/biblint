@@ -1,0 +1,39 @@
+---
+title: Development
+---
+
+`biblint` is a Rust 2024 workspace with four crates:
+
+- `biblint-syntax` owns BibTeX parsing, source ranges, values, and preserved unstructured source;
+- `biblint-format` owns canonical rendering, value transforms, cleanup, and citekey formula evaluation;
+- `biblint-core` owns configuration, diagnostics, lint rules, fixes, file discovery, and project-level duplicate checks;
+- `biblint` owns command-line input, output, and exit codes.
+
+The minimum supported Rust version is 1.88.
+Keep parser, formatter, and rule changes lossless: source biblint cannot structure must remain visible rather than being dropped.
+
+## Checks
+
+Run the workspace checks before submitting changes:
+
+```console
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+## Adding behavior
+
+Keep formatting policy in `biblint-format`, configuration and diagnostics in `biblint-core`, and CLI concerns in `biblint`.
+Add focused regression tests for new transforms and rules.
+
+The citekey formula evaluator follows the same rule: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only.
+Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs.
+
+## Rendering the docs
+
+The documentation source is in `docs/` and is rendered as a Quarto website:
+
+```console
+quarto render docs
+```
