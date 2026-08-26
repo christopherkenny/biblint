@@ -1,10 +1,22 @@
 use super::formula::{FormulaError, compile_formula, evaluate_formula};
 use biblint_syntax::{Document, Entry, Item, Value};
+use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 
 /// The default key profile: the Google Scholar-style author/year/short-title
 /// pattern, expressed using Better BibTeX's formula syntax.
 pub const GOOGLE_SCHOLAR_FORMULA: &str = "auth.lower + year + shorttitle(1,0)";
+
+/// Collision suffix policies for generated citation keys.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CollisionSuffixStyle {
+    /// Use `a`, `b`, ..., `z`, `aa`, ... after the unsuffixed key.
+    #[default]
+    Alphabetic,
+    /// Skip `a` and use `b`, `c`, ..., `z`, `aa`, ... after the unsuffixed key.
+    SkipA,
+}
 
 const BETTER_BIBTEX_SKIP_WORDS: &[&str] = &[
     "a",
@@ -162,6 +174,20 @@ pub fn better_bibtex_key_suggestions_with_formula(
     document: &Document,
     source: &str,
 ) -> Result<Vec<Option<String>>, FormulaError> {
+    better_bibtex_key_suggestions_with_formula_and_suffix(
+        document,
+        source,
+        CollisionSuffixStyle::default(),
+    )
+}
+
+/// Return deterministic key suggestions using a configured formula and
+/// collision suffix policy.
+pub fn better_bibtex_key_suggestions_with_formula_and_suffix(
+    document: &Document,
+    source: &str,
+    collision_suffix: CollisionSuffixStyle,
+) -> Result<Vec<Option<String>>, FormulaError> {
     let formula = compile_formula(source)?;
     let mut reserved = HashMap::<String, usize>::new();
     for entry in document.items.iter().filter_map(|item| match item {
@@ -187,7 +213,12 @@ pub fn better_bibtex_key_suggestions_with_formula(
         if let Some(key) = entry.key.as_deref().filter(|key| !key.trim().is_empty()) {
             release_reserved_key(&mut reserved, key);
         }
-        suggestions.push(Some(next_available_key(&base, &mut reserved, &mut used)));
+        suggestions.push(Some(next_available_key(
+            &base,
+            &mut reserved,
+            &mut used,
+            collision_suffix,
+        )));
     }
     Ok(suggestions)
 }
@@ -206,12 +237,17 @@ fn next_available_key(
     base: &str,
     reserved: &mut HashMap<String, usize>,
     used: &mut HashSet<String>,
+    collision_suffix: CollisionSuffixStyle,
 ) -> String {
     for duplicate in 0usize.. {
         let candidate = if duplicate == 0 {
             base.to_string()
         } else {
-            format!("{base}{}", alphabetic_suffix(duplicate))
+            let suffix_number = match collision_suffix {
+                CollisionSuffixStyle::Alphabetic => duplicate,
+                CollisionSuffixStyle::SkipA => duplicate.saturating_add(1),
+            };
+            format!("{base}{}", alphabetic_suffix(suffix_number))
         };
         let normalized = candidate.to_ascii_lowercase();
         if !reserved.contains_key(&normalized) && used.insert(normalized) {
@@ -231,37 +267,94 @@ pub(super) fn field_value<'a>(entry: &'a Entry, name: &str) -> Option<&'a Value>
 }
 
 pub(super) fn split_creators(value: &str) -> Vec<String> {
-    let mut creators = Vec::new();
+    split_top_level_word(value, "with")
+        .into_iter()
+        .flat_map(|part| split_top_level_word(&part, "and"))
+        .flat_map(|part| split_comma_separated_creators(&part))
+        .map(|creator| trim_creator_separator(&creator).to_string())
+        .filter(|creator| !creator.is_empty())
+        .collect()
+}
+
+fn split_top_level_word(value: &str, wanted: &str) -> Vec<String> {
+    let Some(first) = wanted.chars().next() else {
+        return vec![value.to_string()];
+    };
+    let mut parts = Vec::new();
     let mut start = 0usize;
     let mut depth = 0usize;
-    let characters = value.char_indices().collect::<Vec<_>>();
-    for (position, character) in &characters {
+    for (position, character) in value.char_indices() {
         match character {
-            '{' if !is_escaped(value, *position) => depth += 1,
-            '}' if !is_escaped(value, *position) => depth = depth.saturating_sub(1),
-            'a' | 'A' if depth == 0 => {
-                let end = *position + character.len_utf8();
-                let Some(word) = value.get(*position..end + 2) else {
-                    continue;
-                };
-                let previous = value[..*position].chars().next_back();
-                let following = value[end + 2..].chars().next();
-                if word.eq_ignore_ascii_case("and")
-                    && previous.is_some_and(char::is_whitespace)
-                    && following.is_some_and(char::is_whitespace)
-                {
-                    creators.push(value[start..*position].trim().to_string());
-                    start = end + 2;
-                }
-            }
+            '{' if !is_escaped(value, position) => depth += 1,
+            '}' if !is_escaped(value, position) => depth = depth.saturating_sub(1),
             _ => {}
         }
+        if depth != 0 || !character.eq_ignore_ascii_case(&first) {
+            continue;
+        }
+        let Some(candidate) = value.get(position..position + wanted.len()) else {
+            continue;
+        };
+        let previous = value[..position].chars().next_back();
+        let following = value[position + wanted.len()..].chars().next();
+        if candidate.eq_ignore_ascii_case(wanted)
+            && !is_escaped(value, position)
+            && previous.is_some_and(char::is_whitespace)
+            && following.is_some_and(char::is_whitespace)
+        {
+            parts.push(value[start..position].to_string());
+            start = position + wanted.len();
+        }
     }
-    creators.push(value[start..].trim().to_string());
-    creators
+    parts.push(value[start..].to_string());
+    parts
+}
+
+fn split_comma_separated_creators(value: &str) -> Vec<String> {
+    let parts = split_top_level_character(value, ',');
+    let candidates = parts
+        .iter()
+        .map(|part| part.trim())
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+    let has_trailing_comma = value.trim_end().ends_with(',');
+    let looks_like_creator_list = has_trailing_comma
+        && candidates.len() > 1
+        && candidates
+            .iter()
+            .all(|part| part.split_whitespace().count() >= 2);
+    if looks_like_creator_list {
+        candidates.into_iter().map(str::to_string).collect()
+    } else {
+        vec![value.to_string()]
+    }
+}
+
+fn split_top_level_character(value: &str, separator: char) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut start = 0usize;
+    let mut depth = 0usize;
+    for (position, character) in value.char_indices() {
+        match character {
+            '{' if !is_escaped(value, position) => depth += 1,
+            '}' if !is_escaped(value, position) => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        if depth == 0 && character == separator && !is_escaped(value, position) {
+            parts.push(value[start..position].to_string());
+            start = position + character.len_utf8();
+        }
+    }
+    parts.push(value[start..].to_string());
+    parts
+}
+
+fn trim_creator_separator(value: &str) -> &str {
+    value.trim().trim_end_matches(',').trim()
 }
 
 pub(super) fn creator_surname(value: &str, single_field: bool) -> String {
+    let value = trim_creator_separator(value);
     let visible = visible_text(value).trim().to_string();
     if visible.is_empty() {
         return visible;
@@ -349,7 +442,7 @@ fn parse_uncomma_name(tokens: &[NameToken]) -> String {
     }
 
     let Some(prefix_start) = tokens.iter().position(name_token_is_prefix) else {
-        return words[1..].join(" ");
+        return words.last().copied().unwrap_or_default().to_string();
     };
     let prefix_end = tokens[prefix_start..]
         .iter()
@@ -611,8 +704,14 @@ fn alphabetic_suffix(mut number: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{GOOGLE_SCHOLAR_FORMULA, better_bibtex_key_base, better_bibtex_key_suggestions};
+    use super::{
+        CollisionSuffixStyle, GOOGLE_SCHOLAR_FORMULA, better_bibtex_key_base,
+        better_bibtex_key_suggestions, better_bibtex_key_suggestions_with_formula_and_suffix,
+    };
     use biblint_syntax::parse;
+
+    const GARY_KING_FORMULA: &str =
+        "auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear";
 
     #[test]
     fn uses_the_google_scholar_default_formula() {
@@ -764,6 +863,62 @@ mod tests {
                 "smith2020Study".to_string(),
                 "smith2020Studya".to_string(),
                 "smith2020Studyb".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn supports_gary_king_author_key_conventions() {
+        let document = parse(
+            r"@book{one,editor={Gary King and Kay Schlozman and Norman Nie},year=2009}
+               @book{two,author={Gary King},year=1997}
+               @article{three,author={Gretchen Stevens, Gary King, and Kenji Shibuya},year=2010}
+               @article{four,author={Christopher Adolph and Gary King, with Michael C. Herron and Kenneth W. Shotts},year={In press, 2003}}
+               @article{five,author={King, Gary and Margaret E. Roberts},year=2015}",
+        );
+        let suggestions = better_bibtex_key_suggestions_with_formula_and_suffix(
+            &document,
+            GARY_KING_FORMULA,
+            CollisionSuffixStyle::SkipA,
+        )
+        .unwrap()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+        assert_eq!(
+            suggestions,
+            vec![
+                "KinSchNie09".to_string(),
+                "King97".to_string(),
+                "SteKinShi10".to_string(),
+                "AdoKinHer03".to_string(),
+                "KinRob15".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn supports_gary_king_skip_a_collision_suffixes() {
+        let document = parse(
+            "@article{one,author={Gary King},year=2002}
+             @article{two,author={Gary King},year=2002}
+             @article{three,author={Gary King},year=2002}",
+        );
+        let suggestions = better_bibtex_key_suggestions_with_formula_and_suffix(
+            &document,
+            "auth + shortyear",
+            CollisionSuffixStyle::SkipA,
+        )
+        .unwrap()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+        assert_eq!(
+            suggestions,
+            vec![
+                "King02".to_string(),
+                "King02b".to_string(),
+                "King02c".to_string()
             ]
         );
     }

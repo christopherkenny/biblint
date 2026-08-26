@@ -10,8 +10,10 @@ mod key;
 
 pub use formula::FormulaError;
 pub use key::{
-    GOOGLE_SCHOLAR_FORMULA, better_bibtex_key_base, better_bibtex_key_base_with_formula,
-    better_bibtex_key_suggestions, better_bibtex_key_suggestions_with_formula,
+    CollisionSuffixStyle, GOOGLE_SCHOLAR_FORMULA, better_bibtex_key_base,
+    better_bibtex_key_base_with_formula, better_bibtex_key_suggestions,
+    better_bibtex_key_suggestions_with_formula,
+    better_bibtex_key_suggestions_with_formula_and_suffix,
 };
 
 pub const DEFAULT_SPACE: usize = 2;
@@ -50,12 +52,15 @@ pub const DEFAULT_FIELD_ORDER: &[&str] = &[
 pub struct KeyGenerationOptions {
     /// A supported Better BibTeX formula evaluated against each BibTeX entry.
     pub formula: String,
+    /// How generated keys are suffixed when several entries share a base.
+    pub collision_suffix: CollisionSuffixStyle,
 }
 
 impl Default for KeyGenerationOptions {
     fn default() -> Self {
         Self {
             formula: GOOGLE_SCHOLAR_FORMULA.to_string(),
+            collision_suffix: CollisionSuffixStyle::default(),
         }
     }
 }
@@ -357,8 +362,11 @@ fn transform_document(document: &mut Document, options: &FormatOptions) {
     }
 
     if options.generate_keys
-        && let Ok(suggestions) =
-            better_bibtex_key_suggestions_with_formula(document, &options.key_generation.formula)
+        && let Ok(suggestions) = better_bibtex_key_suggestions_with_formula_and_suffix(
+            document,
+            &options.key_generation.formula,
+            options.key_generation.collision_suffix,
+        )
     {
         for (item, suggestion) in document.items.iter_mut().zip(suggestions) {
             if let (Item::Entry(entry), Some(key)) = (item, suggestion) {
@@ -1944,7 +1952,9 @@ fn unescaped_accent(accent: char, base: char) -> Option<char> {
 
 #[cfg(test)]
 mod tests {
-    use super::{DuplicateKind, FormatOptions, Indent, MergeStrategy, format_document};
+    use super::{
+        CollisionSuffixStyle, DuplicateKind, FormatOptions, Indent, MergeStrategy, format_document,
+    };
     use biblint_syntax::parse;
 
     #[test]
@@ -2228,6 +2238,25 @@ mod tests {
         assert!(!result.output.contains("% line"));
         assert!(!result.output.contains("hidden"));
         assert!(result.output.contains("@article{key"));
+    }
+
+    #[test]
+    fn applies_configured_collision_suffixes_when_generating_keys() {
+        let mut options = FormatOptions {
+            generate_keys: true,
+            ..FormatOptions::default()
+        };
+        options.key_generation.formula = "auth + shortyear".to_string();
+        options.key_generation.collision_suffix = CollisionSuffixStyle::SkipA;
+        let result = format_document(
+            &parse(
+                "@article{one,author={Gary King},year=2002}
+                 @article{two,author={Gary King},year=2002}",
+            ),
+            &options,
+        );
+        assert!(result.output.contains("@article{King02,"));
+        assert!(result.output.contains("@article{King02b,"));
     }
 
     #[test]

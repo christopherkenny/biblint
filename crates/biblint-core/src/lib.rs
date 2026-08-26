@@ -1,6 +1,6 @@
 //! Lint rules, diagnostics, and formatting orchestration for biblint.
 
-use biblint_format::{better_bibtex_key_suggestions_with_formula, format_document};
+use biblint_format::{better_bibtex_key_suggestions_with_formula_and_suffix, format_document};
 use biblint_syntax::{Document, Item, ParseError, TextRange, parse};
 use globset::GlobBuilder;
 use serde::{Deserialize, Serialize};
@@ -9,8 +9,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub use biblint_format::{
-    DEFAULT_FIELD_ORDER, DEFAULT_SPACE, DEFAULT_WRAP, DuplicateKind, FormatOptions, FormatResult,
-    Indent, KeyGenerationOptions, MergeStrategy, unsupported_escape_characters,
+    CollisionSuffixStyle, DEFAULT_FIELD_ORDER, DEFAULT_SPACE, DEFAULT_WRAP, DuplicateKind,
+    FormatOptions, FormatResult, Indent, KeyGenerationOptions, MergeStrategy,
+    unsupported_escape_characters,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -364,9 +365,10 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
 
     let key_suggestions = if settings.rule_enabled_for_path(Rule::KeyFormat, path) {
         match settings.lint.key_format.style {
-            KeyFormatStyle::BetterBibtex => better_bibtex_key_suggestions_with_formula(
+            KeyFormatStyle::BetterBibtex => better_bibtex_key_suggestions_with_formula_and_suffix(
                 &parsed,
                 &settings.format.key_generation.formula,
+                settings.format.key_generation.collision_suffix,
             )
             .ok(),
         }
@@ -928,7 +930,7 @@ mod tests {
         KeyFormatSettings, KeyFormatStyle, LintSettings, Rule, Settings, check_source,
         check_sources,
     };
-    use biblint_format::{FormatOptions, Indent};
+    use biblint_format::{CollisionSuffixStyle, FormatOptions, Indent};
     use std::path::Path;
 
     #[test]
@@ -1117,6 +1119,7 @@ mod tests {
 
             [format.key-generation]
             formula = "auth.lower + year"
+            collision-suffix = "skip-a"
             "#,
         )
         .expect("valid biblint configuration");
@@ -1124,6 +1127,10 @@ mod tests {
         assert_eq!(settings.format.align, None);
         assert_eq!(settings.format.sort, Some(vec!["key".to_string()]));
         assert_eq!(settings.format.key_generation.formula, "auth.lower + year");
+        assert_eq!(
+            settings.format.key_generation.collision_suffix,
+            CollisionSuffixStyle::SkipA
+        );
         assert_eq!(settings.lint.key_format.style, KeyFormatStyle::BetterBibtex);
 
         let checked = check_source(

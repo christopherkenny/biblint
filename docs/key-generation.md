@@ -34,7 +34,7 @@ For example:
 ```
 
 produces the suggestion `smith2024Study`.
-Collisions receive alphabetic suffixes such as `a`, `b`, and `aa`.
+By default, collisions receive alphabetic suffixes such as `a`, `b`, and `aa`.
 Entries without enough key material are left unchanged.
 
 ## Configuration
@@ -53,6 +53,7 @@ generate-keys = true
 
 [format.key-generation]
 formula = "auth.lower + year + shorttitle(1,0)"
+collision-suffix = "alphabetic"
 ```
 
 The formula is optional because the example is the default.
@@ -64,6 +65,17 @@ With `check --fix`, it requires `--unsafe-fixes`:
 biblint check references.bib --fix --unsafe-fixes
 biblint format references.bib
 ```
+
+For author/year keys that reserve the first suffix letter, use `collision-suffix = "skip-a"`.
+The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:
+
+```toml
+[format.key-generation]
+formula = "auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear"
+collision-suffix = "skip-a"
+```
+
+Creator lists written with `and`, `with`, and an Oxford comma are understood for key generation.
 
 ## Supported formula syntax
 
