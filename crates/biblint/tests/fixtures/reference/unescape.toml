@@ -1,0 +1,5 @@
+[format]
+align = false
+lowercase = true
+unescape = true
+remove-duplicate-fields = false

@@ -1,0 +1,17 @@
+[format]
+indent = "tab"
+align = false
+lowercase = true
+curly = true
+numeric = true
+drop-all-caps = true
+strip-comments = true
+remove-empty-fields = true
+remove-duplicate-fields = true
+omit = ["remove"]
+strip-enclosing-braces = true
+max-authors = 2
+sort = ["key"]
+sort-fields = ["title", "author", "note", "year"]
+blank-lines = true
+trailing-commas = true

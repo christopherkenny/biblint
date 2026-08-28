@@ -1,0 +1,5 @@
+# Rust
+/target
+
+# Quarto output
+/.quarto

@@ -1,0 +1,5 @@
+[format]
+align = false
+lowercase = true
+generate-keys = true
+remove-duplicate-fields = false

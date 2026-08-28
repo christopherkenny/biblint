@@ -1,0 +1,5 @@
+[format]
+align = false
+lowercase = true
+wrap = 50
+remove-duplicate-fields = false

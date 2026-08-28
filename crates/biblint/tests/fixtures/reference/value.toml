@@ -1,0 +1,10 @@
+[format]
+align = false
+lowercase = true
+curly = true
+numeric = true
+months = true
+format-page-ranges = true
+remove-braces = ["title"]
+enclosing-braces = ["journal"]
+remove-duplicate-fields = false
