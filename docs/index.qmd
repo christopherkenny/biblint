@@ -22,8 +22,7 @@ biblint rule duplicate_key
 
 `check` reports syntax and lint diagnostics by default.
 `check --format` additionally reports whether files would be reformatted.
-`format` writes the configured representation.
-`--check` reports whether a file would change, and `--diff` prints the change without writing it.
+`format` writes the configured representation, `--check` reports whether a file would change, and `--diff` prints the change without writing it.
 
 Both commands accept files, directories, and standard input (`-`).
 Directories contribute `.bib` files recursively.
