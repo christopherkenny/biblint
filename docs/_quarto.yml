@@ -4,6 +4,7 @@ project:
 website:
   title: biblint
   navbar:
+    background: "#B31B1B"
     left:
       - href: index.qmd
         text: Home
@@ -21,4 +22,6 @@ website:
 format:
   html:
     toc: true
-    theme: cosmo
+    theme:
+      - flatly
+      - custom.scss
