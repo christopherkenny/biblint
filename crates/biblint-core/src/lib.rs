@@ -8,11 +8,14 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod markdown;
+
 pub use biblint_format::{
     CollisionSuffixStyle, DEFAULT_FIELD_ORDER, DEFAULT_SPACE, DEFAULT_WRAP, DuplicateKind,
-    FormatOptions, FormatResult, Indent, KeyGenerationOptions, MergeStrategy,
+    FormatOptions, FormatResult, Indent, KeyChange, KeyGenerationOptions, MergeStrategy,
     unsupported_escape_characters,
 };
+pub use markdown::{MarkdownUpdate, update_markdown_citations};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -361,6 +364,7 @@ fn path_matches(pattern: &str, path: &str) -> bool {
 pub struct CheckedDocument {
     pub parse: Document,
     pub diagnostics: Vec<Diagnostic>,
+    pub key_changes: Vec<KeyChange>,
     suppressions: Vec<Suppression>,
 }
 
@@ -592,8 +596,10 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
         );
     }
 
+    let mut key_changes = Vec::new();
     if parsed.errors.is_empty() {
         let formatted = format_document(&parsed, &settings.format);
+        key_changes.clone_from(&formatted.key_changes);
         if formatted.output != source {
             diagnostics.push(Diagnostic {
                 rule: Rule::Formatting,
@@ -639,6 +645,7 @@ pub fn check_source(source: &str, path: &Path, settings: &Settings) -> CheckedDo
     CheckedDocument {
         parse: parsed,
         diagnostics,
+        key_changes,
         suppressions,
     }
 }

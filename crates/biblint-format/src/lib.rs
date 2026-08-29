@@ -317,9 +317,16 @@ impl FormatOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct KeyChange {
+    pub old: String,
+    pub new: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FormatResult {
     pub output: String,
     pub changed: bool,
+    pub key_changes: Vec<KeyChange>,
 }
 
 /// Return non-ASCII characters that the built-in escape table cannot convert
@@ -340,15 +347,16 @@ pub fn unsupported_escape_characters(value: &str) -> Vec<char> {
 #[must_use]
 pub fn format_document(document: &Document, options: &FormatOptions) -> FormatResult {
     let mut document = document.clone();
-    transform_document(&mut document, options);
+    let key_changes = transform_document(&mut document, options);
     let output = render_document(&document, options);
     FormatResult {
         changed: true,
         output,
+        key_changes,
     }
 }
 
-fn transform_document(document: &mut Document, options: &FormatOptions) {
+fn transform_document(document: &mut Document, options: &FormatOptions) -> Vec<KeyChange> {
     for item in &mut document.items {
         match item {
             Item::Entry(entry) => transform_entry(entry, options),
@@ -361,6 +369,7 @@ fn transform_document(document: &mut Document, options: &FormatOptions) {
         }
     }
 
+    let mut key_changes = Vec::new();
     if options.generate_keys
         && let Ok(suggestions) = better_bibtex_key_suggestions_with_formula_and_suffix(
             document,
@@ -370,6 +379,12 @@ fn transform_document(document: &mut Document, options: &FormatOptions) {
     {
         for (item, suggestion) in document.items.iter_mut().zip(suggestions) {
             if let (Item::Entry(entry), Some(key)) = (item, suggestion) {
+                if let Some(old) = entry.key.as_ref().filter(|old| *old != &key) {
+                    key_changes.push(KeyChange {
+                        old: old.clone(),
+                        new: key.clone(),
+                    });
+                }
                 entry.key = Some(key);
             }
         }
@@ -387,6 +402,7 @@ fn transform_document(document: &mut Document, options: &FormatOptions) {
     if let Some(sort) = &options.sort {
         sort_entries(document, sort);
     }
+    key_changes
 }
 
 fn transform_entry(entry: &mut Entry, options: &FormatOptions) {

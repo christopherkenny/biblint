@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::{Command, Output, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -27,6 +28,23 @@ fn write_config(contents: &str) -> String {
     let path = std::env::temp_dir().join(format!("biblint-cli-{stamp}.toml"));
     std::fs::write(&path, contents).expect("write config");
     path.to_string_lossy().into_owned()
+}
+
+fn temporary_directory() -> PathBuf {
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("clock")
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("biblint-cli-test-{stamp}"));
+    std::fs::create_dir_all(&path).expect("create temporary directory");
+    path
+}
+
+fn run_file(args: &[String]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_biblint"))
+        .args(args)
+        .output()
+        .expect("run biblint")
 }
 
 #[test]
@@ -138,6 +156,90 @@ fn configured_better_bibtex_formula_controls_generation() {
             .contains("smith-2024")
     );
     std::fs::remove_file(config).expect("remove config");
+}
+
+#[test]
+fn updates_markdown_family_citations_when_generating_keys() {
+    for extension in ["md", "qmd", "Rmd"] {
+        let directory = temporary_directory();
+        let bib = directory.join("references.bib");
+        let markdown = directory.join(format!("manuscript.{extension}"));
+        let config = directory.join("biblint.toml");
+        std::fs::write(
+            &bib,
+            "@article{old,author={Smith, John},year=2024,title={A study}}\n",
+        )
+        .expect("write BibTeX");
+        std::fs::write(
+            &markdown,
+            "See [@old; @other] and @old.\n\n```text\n[@old]\n```\n",
+        )
+        .expect("write Markdown");
+        std::fs::write(&config, "[format]\ngenerate-keys = true\n").expect("write config");
+
+        let args = vec![
+            "check".to_string(),
+            bib.to_string_lossy().into_owned(),
+            "--format".to_string(),
+            "--fix".to_string(),
+            "--unsafe-fixes".to_string(),
+            "--update-markdown".to_string(),
+            markdown.to_string_lossy().into_owned(),
+            "--config".to_string(),
+            config.to_string_lossy().into_owned(),
+        ];
+        let output = run_file(&args);
+        assert!(
+            output.status.success(),
+            "biblint failed for .{extension}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            String::from_utf8_lossy(&std::fs::read(&bib).expect("read BibTeX"))
+                .contains("@article{smith2024study,")
+        );
+        assert_eq!(
+            std::fs::read_to_string(&markdown).expect("read Markdown"),
+            "See [@smith2024study; @other] and @smith2024study.\n\n```text\n[@old]\n```\n"
+        );
+        assert!(String::from_utf8_lossy(&output.stdout).contains("Updated 2 citation(s)"));
+        std::fs::remove_dir_all(directory).expect("remove temporary directory");
+    }
+}
+
+#[test]
+fn update_markdown_rejects_other_extensions() {
+    let directory = temporary_directory();
+    let bib = directory.join("references.bib");
+    let text = directory.join("manuscript.txt");
+    let config = directory.join("biblint.toml");
+    std::fs::write(
+        &bib,
+        "@article{old,author={Smith, John},year=2024,title={A study}}\n",
+    )
+    .expect("write BibTeX");
+    std::fs::write(&text, "[@old]\n").expect("write text");
+    std::fs::write(&config, "[format]\ngenerate-keys = true\n").expect("write config");
+
+    let args = vec![
+        "check".to_string(),
+        bib.to_string_lossy().into_owned(),
+        "--format".to_string(),
+        "--fix".to_string(),
+        "--unsafe-fixes".to_string(),
+        "--update-markdown".to_string(),
+        text.to_string_lossy().into_owned(),
+        "--config".to_string(),
+        config.to_string_lossy().into_owned(),
+    ];
+    let output = run_file(&args);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("only supports .md, .qmd, and .Rmd"));
+    assert_eq!(
+        std::fs::read_to_string(&text).expect("read text"),
+        "[@old]\n"
+    );
+    std::fs::remove_dir_all(directory).expect("remove temporary directory");
 }
 
 #[test]

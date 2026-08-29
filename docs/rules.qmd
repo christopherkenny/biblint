@@ -25,7 +25,8 @@ Run `biblint rule` to list them, or `biblint rule <name>` for one rule's summary
 | `unsupported_construct` | yes     | none            | Source was preserved because it could not be structured.    |
 
 `syntax_error` has error severity.
-Most other structural problems are warnings; preserved source and unsupported characters are notes.
+Most other structural problems are warnings. Preserved source and unsupported
+characters are notes.
 
 `nonstandard_name_separator` checks `author`, `editor`, `translator`, and `collaborator` values.
 It only examines text outside nested braces, does not rewrite values, and does not inspect prose fields such as `title` or `note`.
@@ -71,7 +72,8 @@ Per-file exceptions use the same rule names:
 ## Project-level checks
 
 When checking a directory or multiple files, biblint also detects duplicates across files.
-DOI, citation, and abstract rules are disabled by default; enable only the comparisons useful for the project.
+DOI, citation, and abstract rules are disabled by default. Enable only the
+comparisons useful for the project.
 
 ## Key-format checks
 

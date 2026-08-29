@@ -27,6 +27,8 @@ cargo install --path crates/biblint
 biblint check references.bib
 biblint check references.bib --format
 biblint check references.bib --format --fix
+biblint check references.bib --format --fix --unsafe-fixes \
+  --update-markdown manuscript.qmd
 biblint check . --output json
 biblint format references.bib --check
 biblint format references.bib --diff
@@ -63,6 +65,21 @@ formula = "auth.lower + year + shorttitle(1,0)"
 The default profile normalizes layout, entry types, and field names while preserving value spelling.
 Additional cleanup, sorting, duplicate checks, value transforms, and citekey checks are opt-in.
 
-The `key_format` rule is opt-in because changing a citation key can break citation references in other files.
-Its default formula is `auth.lower + year + shorttitle(1,0)`; see [citekey generation](docs/key-generation.md) for customization.
-`generate-keys = true` applies the formula as a formatter transform and requires `--unsafe-fixes` with `check --format --fix`.
+The `key_format` rule is opt-in because changing a citation key can break
+citation references in other files. Its default formula is
+`auth.lower + year + shorttitle(1,0)`. See [citekey generation](docs/key-generation.md)
+for customization. `generate-keys = true` applies the formula as a formatter
+transform and requires `--unsafe-fixes` with `check --format --fix`.
+
+When generated keys change, `check` can update Pandoc-style citations in one
+related Markdown, Quarto, or R Markdown file. The input must be one explicit
+BibTeX file. The target must end in `.md`, `.qmd`, or `.Rmd`.
+
+```console
+biblint check references.bib --format --fix --unsafe-fixes \
+  --update-markdown manuscript.qmd
+```
+
+Bracketed citations such as `[@old]` and textual citations such as `@old`
+are updated. Code fences, inline code, HTML tags, comments, and email-like
+addresses are left unchanged.

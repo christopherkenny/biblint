@@ -66,6 +66,25 @@ biblint check references.bib --format --fix --unsafe-fixes
 biblint format references.bib
 ```
 
+## Updating Markdown citations
+
+Changing a key can also update references in one related document. Pass an
+explicit `.md`, `.qmd`, or `.Rmd` path while checking one explicit BibTeX file:
+
+```console
+biblint check references.bib --format --fix --unsafe-fixes \
+  --update-markdown manuscript.qmd
+```
+
+The option requires `--format`, `--fix`, and `--unsafe-fixes` because citation
+key changes affect document identity. It updates Pandoc-style bracketed
+citations. This includes citations with multiple keys or locators. It also
+updates textual citations.
+
+Fenced code, inline code, HTML tags, HTML comments, and email-like addresses
+are preserved. A directory check or standard-input check cannot use this
+paired update.
+
 For author/year keys that reserve the first suffix letter, use `collision-suffix = "skip-a"`.
 The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:
 
@@ -85,7 +104,7 @@ The evaluator supports:
 - direct BibTeX fields, such as `title`, `doi`, and `shortauthor`
 - quoted strings and numbers, for example `"-"` and `2024`
 - concatenation with `+`
-- fallbacks with `||`, and top-level alternate patterns separated by `;` or `|`
+- fallbacks with `||`, and top-level alternate patterns separated by a semicolon or `|`
 - conditional composition with `&&`
 - ternaries such as `language == "en" ? "eng" : ""`
 - length comparisons using `==`, `!=`, `<`, `<=`, `>`, or `>=`

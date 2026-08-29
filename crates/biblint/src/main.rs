@@ -1,6 +1,6 @@
 use biblint_core::{
     Diagnostic, FixSafety, Rule, Severity, apply_fixes, check_source, check_sources,
-    discover_files, format_source, load_settings,
+    discover_files, format_source, load_settings, update_markdown_citations,
 };
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use similar::TextDiff;
@@ -48,6 +48,13 @@ struct CheckArgs {
     /// Read configuration from this file instead of discovering biblint.toml.
     #[arg(long)]
     config: Option<PathBuf>,
+    /// Update citations in this Markdown-family file when generated keys change.
+    #[arg(
+        long,
+        value_name = "PATH",
+        requires_all = ["format", "fix", "unsafe_fixes"]
+    )]
+    update_markdown: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
@@ -101,43 +108,98 @@ fn run_check(args: &CheckArgs) -> Result<ExitCode, String> {
             .extend_select
             .push(Rule::Formatting.name().to_string());
     }
+    if let Some(path) = args.update_markdown.as_deref() {
+        validate_markdown_update(args, path)?;
+    }
     if is_stdin(&args.paths) {
-        let mut source = read_stdin()?;
-        let mut checked = check_source(&source, Path::new("<stdin>"), &settings);
-        if args.fix {
-            let fixed = apply_fixes(&source, &checked.diagnostics, args.unsafe_fixes);
-            if fixed != source {
-                if matches!(args.output, OutputFormat::Text) {
-                    print!("{fixed}");
-                }
-                source = fixed;
-                checked = check_source(&source, Path::new("<stdin>"), &settings);
-            }
-        }
-        print_diagnostics(&checked.diagnostics, &source, args.output)?;
-        if !checked.diagnostics.is_empty() {
-            eprintln!("Found {} issue(s).", checked.diagnostics.len());
-        }
-        return Ok(exit_for_diagnostics(&checked.diagnostics));
+        return run_check_stdin(args, &settings);
     }
 
     let files = discover_files(&args.paths, &settings)?;
+    run_check_files(args, &settings, files)
+}
+
+fn run_check_stdin(
+    args: &CheckArgs,
+    settings: &biblint_core::Settings,
+) -> Result<ExitCode, String> {
+    let mut source = read_stdin()?;
+    let mut checked = check_source(&source, Path::new("<stdin>"), settings);
+    if args.fix {
+        let fixed = apply_fixes(&source, &checked.diagnostics, args.unsafe_fixes);
+        if fixed != source {
+            if matches!(args.output, OutputFormat::Text) {
+                print!("{fixed}");
+            }
+            source = fixed;
+            checked = check_source(&source, Path::new("<stdin>"), settings);
+        }
+    }
+    print_diagnostics(&checked.diagnostics, &source, args.output)?;
+    if !checked.diagnostics.is_empty() {
+        eprintln!("Found {} issue(s).", checked.diagnostics.len());
+    }
+    Ok(exit_for_diagnostics(&checked.diagnostics))
+}
+
+fn run_check_files(
+    args: &CheckArgs,
+    settings: &biblint_core::Settings,
+    files: Vec<PathBuf>,
+) -> Result<ExitCode, String> {
+    if args.update_markdown.is_some() && files.len() != 1 {
+        return Err(
+            "--update-markdown requires exactly one included BibTeX file as the input path"
+                .to_string(),
+        );
+    }
+    let markdown_source = args
+        .update_markdown
+        .as_ref()
+        .map(|path| {
+            fs::read_to_string(path)
+                .map(|source| (path.clone(), source))
+                .map_err(|error| format!("could not read {}: {error}", path.display()))
+        })
+        .transpose()?;
     let mut sources = Vec::new();
+    let mut pending_writes = Vec::new();
+    let mut key_changes = Vec::new();
     for path in files {
         let mut source = fs::read_to_string(&path)
             .map_err(|error| format!("could not read {}: {error}", path.display()))?;
         if args.fix {
-            let checked = check_source(&source, &path, &settings);
+            let checked = check_source(&source, &path, settings);
             let fixed = apply_fixes(&source, &checked.diagnostics, args.unsafe_fixes);
             if fixed != source {
-                fs::write(&path, &fixed)
-                    .map_err(|error| format!("could not write {}: {error}", path.display()))?;
+                if args.update_markdown.is_some() {
+                    key_changes.extend(checked.key_changes.iter().cloned());
+                }
+                pending_writes.push((path.clone(), fixed.clone()));
                 source = fixed;
             }
         }
         sources.push((path, source));
     }
-    let diagnostics = check_sources(&sources, &settings);
+    let markdown_update = markdown_source
+        .as_ref()
+        .map(|(path, source)| {
+            update_markdown_citations(source, &key_changes)
+                .map(|update| (path.clone(), source.clone(), update))
+                .map_err(|error| format!("could not update {}: {error}", path.display()))
+        })
+        .transpose()?;
+    for (path, source) in pending_writes {
+        fs::write(&path, source)
+            .map_err(|error| format!("could not write {}: {error}", path.display()))?;
+    }
+    if let Some((path, source, update)) = &markdown_update
+        && update.output != *source
+    {
+        fs::write(path, &update.output)
+            .map_err(|error| format!("could not write {}: {error}", path.display()))?;
+    }
+    let diagnostics = check_sources(&sources, settings);
 
     match args.output {
         OutputFormat::Json => println!(
@@ -152,12 +214,52 @@ fn run_check(args: &CheckArgs) -> Result<ExitCode, String> {
                     .map_or("", |(_, source)| source.as_str());
                 print_text_diagnostic(diagnostic, source, &sources);
             }
+            if let Some((path, _, update)) = &markdown_update
+                && update.replacements > 0
+            {
+                println!(
+                    "Updated {} citation(s) in {}",
+                    update.replacements,
+                    path.display()
+                );
+            }
         }
     }
     if !diagnostics.is_empty() {
         eprintln!("Found {} issue(s).", diagnostics.len());
     }
     Ok(exit_for_diagnostics(&diagnostics))
+}
+
+fn validate_markdown_update(args: &CheckArgs, path: &Path) -> Result<(), String> {
+    if is_stdin(&args.paths) {
+        return Err("--update-markdown cannot be used when linting standard input".to_string());
+    }
+    if args.paths.len() != 1 || !args.paths[0].is_file() {
+        return Err(
+            "--update-markdown requires one explicit BibTeX file as the input path".to_string(),
+        );
+    }
+    if !is_supported_markdown_path(path) {
+        return Err(format!(
+            "--update-markdown only supports .md, .qmd, and .Rmd files: {}",
+            path.display()
+        ));
+    }
+    if !path.is_file() {
+        return Err(format!("Markdown file does not exist: {}", path.display()));
+    }
+    Ok(())
+}
+
+fn is_supported_markdown_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("md")
+                || extension.eq_ignore_ascii_case("qmd")
+                || extension.eq_ignore_ascii_case("rmd")
+        })
 }
 
 fn run_format(args: &FormatArgs) -> Result<ExitCode, String> {
