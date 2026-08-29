@@ -173,6 +173,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#default-formula" id="toc-default-formula" class="nav-link" data-scroll-target="#default-formula">Default formula</a></li>
   <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
+  <li><a href="#updating-markdown-citations" id="toc-updating-markdown-citations" class="nav-link" data-scroll-target="#updating-markdown-citations">Updating Markdown citations</a></li>
   <li><a href="#supported-formula-syntax" id="toc-supported-formula-syntax" class="nav-link" data-scroll-target="#supported-formula-syntax">Supported formula syntax</a></li>
   <li><a href="#determinism-and-safety" id="toc-determinism-and-safety" class="nav-link" data-scroll-target="#determinism-and-safety">Determinism and safety</a></li>
   </ul></li>
@@ -227,10 +228,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The formula is optional because the example is the default. <code>key_format</code> reports differences but does not rename existing keys. <code>generate-keys = true</code> enables replacement as a formatter transform. With <code>check --format --fix</code>, it requires <code>--unsafe-fixes</code>:</p>
 <pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes
 biblint format references.bib</code></pre>
+</section>
+<section id="updating-markdown-citations" class="level2">
+<h2 class="anchored" data-anchor-id="updating-markdown-citations">Updating Markdown citations</h2>
+<p>Changing a key can also update references in one related document. Pass an explicit <code>.md</code>, <code>.qmd</code>, or <code>.Rmd</code> path while checking one explicit BibTeX file:</p>
+<pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes \
+  --update-markdown manuscript.qmd</code></pre>
+<p>The option requires <code>--format</code>, <code>--fix</code>, and <code>--unsafe-fixes</code> because citation key changes affect document identity. It updates Pandoc-style bracketed citations. This includes citations with multiple keys or locators. It also updates textual citations.</p>
+<p>Fenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.</p>
 <p>For author/year keys that reserve the first suffix letter, use <code>collision-suffix = "skip-a"</code>. The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear"</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="dt">collision-suffix</span> <span class="op">=</span> <span class="st">"skip-a"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="dt">collision-suffix</span> <span class="op">=</span> <span class="st">"skip-a"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Creator lists follow standard BibTeX name syntax: separate creators with the word <code>and</code>.</p>
 </section>
 <section id="supported-formula-syntax" class="level2">
@@ -240,7 +249,7 @@ biblint format references.bib</code></pre>
 <li>direct BibTeX fields, such as <code>title</code>, <code>doi</code>, and <code>shortauthor</code></li>
 <li>quoted strings and numbers, for example <code>"-"</code> and <code>2024</code></li>
 <li>concatenation with <code>+</code></li>
-<li>fallbacks with <code>||</code>, and top-level alternate patterns separated by <code>;</code> or <code>|</code></li>
+<li>fallbacks with <code>||</code>, and top-level alternate patterns separated by a semicolon or <code>|</code></li>
 <li>conditional composition with <code>&amp;&amp;</code></li>
 <li>ternaries such as <code>language == "en" ? "eng" : ""</code></li>
 <li>length comparisons using <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, or <code>&gt;=</code></li>
