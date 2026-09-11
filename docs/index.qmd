@@ -1,54 +1,89 @@
 ---
 title: biblint
+subtitle: Deterministic BibTeX linting and formatting
 ---
 
-`biblint` is a BibTeX linter and formatter.
-Commit `biblint.toml` so collaborators and CI use the same policy.
+`biblint` checks BibTeX files for syntax and bibliography problems, then formats them into a consistent representation.
+Keep the configuration in your repository so local runs and CI use the same policy.
 
-## Commands
+::: {.callout-note}
 
-```console
-biblint check .
-biblint check . --format
-biblint check references.bib --format --fix
-biblint check references.bib --format --fix --unsafe-fixes
-biblint check . --output json
-biblint format references.bib
-biblint format . --check
-biblint format references.bib --diff
-biblint rule
-biblint rule duplicate_key
-```
+## New here?
 
-`check` reports syntax and lint diagnostics by default.
-`check --format` additionally reports whether files would be reformatted.
-`format` writes the configured representation, `--check` reports whether a file would change, and `--diff` prints the change without writing it.
+Start with `biblint check .`.
+It scans the current project without changing any files.
+The path is optional: `.` is the default.
 
-Both commands accept files, directories, and standard input (`-`).
-Directories contribute `.bib` files recursively.
-See [Configuration](configuration.qmd) for discovery and policy settings.
+:::
 
-## Workflow
+## A safe first workflow
 
-Use `check` to review a project and `format` to apply its configured format:
+### 1. Check the project
+
+Run the linter from the project root.
+A directory is searched recursively for `.bib` files, and the default-enabled rules run automatically unless your configuration selects a different set.
 
 ```console
 biblint check .
-biblint check . --format --fix
-biblint format references.bib --diff
 ```
 
-`check --format --fix` applies safe formatting changes.
-Key generation, merging, field removal, brace removal, and author truncation also require `--unsafe-fixes`.
+### 2. Preview formatting
 
-## Defaults
+Use `--diff` when you want to inspect the formatter's exact changes.
+This command does not write files.
 
-Without a configuration file, `format` normalizes layout, entry types, and field names while preserving value spelling.
-Other transforms and optional checks are enabled in `biblint.toml`.
+```console
+biblint format . --diff
+```
 
-## Documentation
+### 3. Apply the profile
 
-- [Configuration](configuration.qmd) — discovery and policy settings
-- [Formatting](formatting.qmd) — layout and value transforms
-- [Rules](rules.qmd) — diagnostics and defaults
-- [Citekey generation](key-generation.md) — formula syntax
+After reviewing the diff, format the project in place:
+
+```console
+biblint format .
+```
+
+If you want biblint to make only safe changes while checking, use `check --format --fix`.
+Content-changing transforms remain disabled unless you explicitly add `--unsafe-fixes`.
+
+## Pick the command by goal
+
+| I want to…                        | Use  | What happens                                       |
+| --------------------------------- | ---- | -------------------------------------------------- |
+| Find syntax and lint issues       | `biblint check .` | Reports diagnostics; writes nothing.               |
+| Include formatting in the check   | `biblint check . --format` | Adds a formatting diagnostic; writes nothing.      |
+| Fix safe issues automatically     | `biblint check . --format --fix` | Writes safe fixes, including formatting.           |
+| Format files directly             | `biblint format .` | Writes the configured representation.              |
+| Gate formatting in CI             | `biblint format . --check` | Reports files that would change and exits nonzero. |
+| Review a formatting diff          | `biblint format . --diff` | Prints a unified diff and writes nothing.          |
+| Integrate diagnostics with a tool | `biblint check . --output json` | Prints diagnostics as JSON.                        |
+| Learn about a rule                | `biblint rule <name>` | Prints that rule's summary and fix status.         |
+
+## What biblint reads
+
+- A directory contributes `.bib` files recursively.
+- An explicit file is checked even if its extension is not `.bib`.
+- `-` reads one BibTeX document from standard input.
+- `biblint.toml` is discovered by searching upward from the first input path.
+
+See [Configuration](configuration.qmd) for include/exclude patterns and rule selection.
+See [Formatting](formatting.qmd) for the changes made by default and the transforms you can opt into.
+
+::: {.callout-warning}
+
+## Before enabling transforms
+
+Formatting is intentionally conservative by default.
+Options such as citekey generation, merging, field removal, brace removal, and author truncation can change content or citation identity.
+Preview them with `biblint format <path> --diff` before writing, and use `--unsafe-fixes` when applying them through `check --format --fix`.
+
+:::
+
+## Continue with a task
+
+- [Configure a project](configuration.qmd) — choose files, rules, and formatting policy
+- [Format BibTeX](formatting.qmd) — understand defaults and opt-in transforms
+- [Explore rules](rules.qmd) — enable checks, suppress individual entries, and find duplicates
+- [Generate citekeys](key-generation.md) — use the supported Better BibTeX formula subset
+- [Develop biblint](development.qmd) — run workspace checks and render this site

@@ -2,54 +2,65 @@
 title: Configuration
 ---
 
-`biblint.toml` contains formatting policy, rule selection, and file discovery.
-The command line chooses the operation and output format.
+`biblint.toml` answers three questions:
 
-## Discovery
+1. Which BibTeX files belong to this project?
+2. Which lint rules should run?
+3. How should matching files be formatted?
 
-Without `--config`, biblint searches upward from the input path.
+Keep the file in version control, usually at the repository root.
+The command line chooses the operation (`check` or `format`); the configuration chooses the policy shared by both commands.
+
+## Find the right files
+
+Without `--config`, biblint searches upward from the first input path until it finds `biblint.toml`.
 An explicitly supplied config path takes precedence.
-Commit one config file at the repository root so collaborators and CI share the policy.
+This means a command launched from a subdirectory still uses the repository policy.
 
-The top-level file-selection settings apply to both `check` and `format`:
+For a directory input, biblint visits `.bib` files recursively.
+`include` and `exclude` patterns then decide which files are used:
 
 ```toml
 include = ["**/*.bib"]
-exclude = ["vendor/**"]
+exclude = ["vendor/**", "generated/**"]
 default-exclude = true
 ```
 
-Directories contribute `.bib` files recursively.
-Explicit file arguments are accepted regardless of extension.
-With `default-exclude = true`, `.git/**` and `target/**` are skipped.
+An explicit file does not need a `.bib` extension, although it is still subject to the configured include and exclude patterns.
+Recursive scans skip `.git/**` and `target/**` when `default-exclude` is `true`.
 
-## Rule selection
+## Select rules
+
+The default rule set is a useful starting point.
+Use `extend-select` to add opt-in rules while keeping the defaults, or use `select` when you want to define the complete set yourself.
+`ignore` always wins over either selection method.
 
 ```toml
 [lint]
-# `select` replaces the default rule set.
-select = ["duplicate_key", "duplicate_doi"]
+# Add checks without removing the defaults.
+extend-select = ["duplicate_doi", "key_format"]
 
-# `extend-select` adds rules without removing defaults.
-extend-select = ["key_format"]
+# Replace the defaults entirely when a small, explicit set is preferable.
+# select = ["syntax_error", "duplicate_key"]
 
-# `ignore` wins over selection.
-ignore = ["unsupported_escape"]
-
-[lint.per-file-ignores]
-"generated/**" = ["formatting"]
+# Disable a selected rule, including one added above.
+# ignore = ["key_format"]
 ```
 
 Use `all` as a wildcard.
-If `select` is omitted, default-enabled rules run.
-`extend-select` adds opt-in rules, while `ignore` takes precedence.
-Per-file ignores use the same rule names.
+Per-file ignores use the same rule names and are useful for generated or legacy data:
 
-The `formatting` rule is opt-in for `check`.
-Use `biblint check --format` for a one-off check or add it to `select`/`extend-select` in the configuration.
-`biblint format --check` checks formatting independently of lint rule selection.
+```toml
+[lint.per-file-ignores]
+"generated/**" = ["formatting", "unsupported_construct"]
+```
 
-## Starter configuration
+Formatting is not part of `check` by default because it is a rewrite rather than a content diagnostic.
+Use `biblint check --format` for a one-off formatting check, select `formatting` in the config, or use `biblint format --check` when formatting is the only gate you need.
+
+## A practical starter file
+
+This profile scans project bibliographies, ignores vendored/generated files, adds duplicate DOI/citation and citekey checks, and sorts the output predictably:
 
 ```toml
 include = ["**/*.bib"]
@@ -68,15 +79,12 @@ align = false
 lowercase = true
 sort = ["key"]
 sort-fields = ["title", "author", "year"]
-
-[format.key-generation]
-formula = "auth.lower + year + shorttitle(1,0)"
 ```
 
-The formula is optional because it is biblint's default.
-See [Citekey generation](key-generation.md) for the available syntax.
+The key-format section enables the Better BibTeX-compatible style for checking existing keys.
+It does not rename them; see [Citekey generation](key-generation.md) when you want to generate and apply new keys.
 
-## Validation
+## Validate a configuration
 
-Unknown settings, rule names, invalid globs, and invalid formulas are rejected when the configuration is loaded.
-Settings not specified in the file use their defaults.
+Unknown settings, rule names, invalid globs, and invalid citekey formulas are rejected when the configuration loads.
+Settings omitted from the file use their defaults, so start small and add only the policy your project needs.

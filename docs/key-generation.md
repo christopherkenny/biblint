@@ -1,9 +1,15 @@
 # Citekey generation
 
 `biblint` can check existing citation keys and generate deterministic suggestions from BibTeX entries.
-The `better-bibtex` style uses a deterministic subset of Better BibTeX's formula syntax and reads only data in the `.bib` file.
+There are two separate choices:
 
-Unsupported functions and filters are rejected when the configuration is loaded.
+| Goal                 | Setting       | Result                                     |
+| -------------------- | ------------- | ------------------------------------------ |
+| Audit existing keys  | `key_format` under `[lint]` | Reports a suggestion; never renames a key. |
+| Apply generated keys | `generate-keys` under `[format]` | Replaces keys while formatting.            |
+
+The `better-bibtex` style implements a deterministic subset of Better BibTeX's formula syntax and reads only data present in the `.bib` file.
+Unsupported functions and filters are rejected when the configuration loads.
 
 ## Default formula
 
@@ -23,7 +29,7 @@ It:
 `shorttitle` removes common stopwords before counting words.
 The `0` preserves the title fragment's original capitalization.
 
-For example:
+For example, this entry:
 
 ```bibtex
 @article{old,
@@ -34,10 +40,10 @@ For example:
 ```
 
 produces the suggestion `smith2024Study`.
-By default, collisions receive alphabetic suffixes such as `a`, `b`, and `aa`.
+Existing keys reserve their values, so collisions receive alphabetic suffixes such as `a`, `b`, and `aa`.
 Entries without enough key material are left unchanged.
 
-## Configuration
+## Configure checking and generation
 
 Keep the formula in the repository's `biblint.toml`:
 
@@ -56,37 +62,46 @@ formula = "auth.lower + year + shorttitle(1,0)"
 collision-suffix = "alphabetic"
 ```
 
-The formula is optional because the example is the default.
-`key_format` reports differences but does not rename existing keys.
+The formula in this example is the default and can be omitted.
+With only `key_format` enabled, `check` reports differences but does not rename existing keys.
 `generate-keys = true` enables replacement as a formatter transform.
-With `check --format --fix`, it requires `--unsafe-fixes`:
+
+To inspect key suggestions without writing files:
+
+```console
+biblint check references.bib
+```
+
+To preview the generated keys and any other configured formatting changes:
+
+```console
+biblint format references.bib --diff
+```
+
+The standalone `format` command applies the configured profile directly after you review the diff.
+If you apply the profile through `check --format --fix`, key generation is an unsafe fix and must be explicit:
 
 ```console
 biblint check references.bib --format --fix --unsafe-fixes
-biblint format references.bib
 ```
 
-## Updating Markdown citations
+## Update citations in one document
 
-Changing a key can also update references in one related document. Pass an
-explicit `.md`, `.qmd`, or `.Rmd` path while checking one explicit BibTeX file:
+When generated keys change, biblint can update references in one related Markdown, Quarto, or R Markdown document.
+Pass an explicit `.md`, `.qmd`, or `.Rmd` path while checking exactly one explicit BibTeX file:
 
 ```console
-biblint check references.bib --format --fix --unsafe-fixes \
-  --update-markdown manuscript.qmd
+biblint check references.bib --format --fix --unsafe-fixes --update-markdown manuscript.qmd
 ```
 
-The option requires `--format`, `--fix`, and `--unsafe-fixes` because citation
-key changes affect document identity. It updates Pandoc-style bracketed
-citations. This includes citations with multiple keys or locators. It also
-updates textual citations.
+The option requires `--format`, `--fix`, and `--unsafe-fixes` because citation key changes affect document identity.
+It updates Pandoc-style bracketed citations, including citations with multiple keys or locators, and textual citations.
 
-Fenced code, inline code, HTML tags, HTML comments, and email-like addresses
-are preserved. A directory check or standard-input check cannot use this
-paired update.
+Fenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved.
+A directory check or standard-input check cannot use this paired update.
 
 For author/year keys that reserve the first suffix letter, use `collision-suffix = "skip-a"`.
-The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:
+This formula uses the full surname for one creator and the first three letters of up to three creators otherwise:
 
 ```toml
 [format.key-generation]
@@ -132,3 +147,4 @@ Functions and filters outside the supported lists are configuration errors.
 
 The same BibTeX input and committed configuration produce the same suggestions.
 Existing keys are reserved, and collision suffixes are assigned in document order.
+Because a generated key can be referenced outside the `.bib` file, preview key changes and update related citations in the same reviewed change.

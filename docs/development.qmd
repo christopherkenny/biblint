@@ -12,13 +12,26 @@ title: Development
 The minimum supported Rust version is 1.88.
 Keep parser, formatter, and rule changes lossless: source biblint cannot structure must remain visible rather than being dropped.
 
-## Checks
+## Before submitting a change
 
-Run the workspace checks before submitting changes:
+Run these checks from the repository root.
+Each command answers a different question, so a failure is easier to diagnose when they are run separately.
+
+First, check that Rust formatting is unchanged:
 
 ```console
 cargo fmt --all -- --check
+```
+
+Then run Clippy with warnings treated as errors:
+
+```console
 cargo clippy --workspace --all-targets -- -D warnings
+```
+
+Finally, run the full workspace test suite:
+
+```console
 cargo test --workspace
 ```
 
@@ -27,13 +40,22 @@ cargo test --workspace
 Keep formatting policy in `biblint-format`, configuration and diagnostics in `biblint-core`, and CLI concerns in `biblint`.
 Add focused regression tests for new transforms and rules.
 
-The citekey formula evaluator follows the same rule: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only.
+The citekey formula evaluator follows the same boundary: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only.
 Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs.
 
-## Rendering the docs
+## Render the documentation
 
-The documentation source is in `docs/` and is rendered as a Quarto website:
+The website source is in `docs/` and is rendered with Quarto.
+Render it after editing the `.qmd` or Markdown sources:
 
 ```console
 quarto render docs
 ```
+
+For an interactive local preview that refreshes as you edit:
+
+```console
+quarto preview docs
+```
+
+Generated output lives in `docs/_site/` and is ignored by Git.
