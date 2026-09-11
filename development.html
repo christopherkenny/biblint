@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -134,9 +134,9 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#checks" id="toc-checks" class="nav-link active" data-scroll-target="#checks">Checks</a></li>
+  <li><a href="#before-submitting-a-change" id="toc-before-submitting-a-change" class="nav-link active" data-scroll-target="#before-submitting-a-change">Before submitting a change</a></li>
   <li><a href="#adding-behavior" id="toc-adding-behavior" class="nav-link" data-scroll-target="#adding-behavior">Adding behavior</a></li>
-  <li><a href="#rendering-the-docs" id="toc-rendering-the-docs" class="nav-link" data-scroll-target="#rendering-the-docs">Rendering the docs</a></li>
+  <li><a href="#render-the-documentation" id="toc-render-the-documentation" class="nav-link" data-scroll-target="#render-the-documentation">Render the documentation</a></li>
   </ul>
 </nav>
     </div>
@@ -170,22 +170,28 @@ ul.task-list li input[type="checkbox"] {
 <li><code>biblint</code> owns command-line input, output, and exit codes</li>
 </ul>
 <p>The minimum supported Rust version is 1.88. Keep parser, formatter, and rule changes lossless: source biblint cannot structure must remain visible rather than being dropped.</p>
-<section id="checks" class="level2">
-<h2 class="anchored" data-anchor-id="checks">Checks</h2>
-<p>Run the workspace checks before submitting changes:</p>
-<pre class="console"><code>cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace</code></pre>
+<section id="before-submitting-a-change" class="level2">
+<h2 class="anchored" data-anchor-id="before-submitting-a-change">Before submitting a change</h2>
+<p>Run these checks from the repository root. Each command answers a different question, so a failure is easier to diagnose when they are run separately.</p>
+<p>First, check that Rust formatting is unchanged:</p>
+<pre class="console"><code>cargo fmt --all -- --check</code></pre>
+<p>Then run Clippy with warnings treated as errors:</p>
+<pre class="console"><code>cargo clippy --workspace --all-targets -- -D warnings</code></pre>
+<p>Finally, run the full workspace test suite:</p>
+<pre class="console"><code>cargo test --workspace</code></pre>
 </section>
 <section id="adding-behavior" class="level2">
 <h2 class="anchored" data-anchor-id="adding-behavior">Adding behavior</h2>
 <p>Keep formatting policy in <code>biblint-format</code>, configuration and diagnostics in <code>biblint-core</code>, and CLI concerns in <code>biblint</code>. Add focused regression tests for new transforms and rules.</p>
-<p>The citekey formula evaluator follows the same rule: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only. Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs.</p>
+<p>The citekey formula evaluator follows the same boundary: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only. Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs.</p>
 </section>
-<section id="rendering-the-docs" class="level2">
-<h2 class="anchored" data-anchor-id="rendering-the-docs">Rendering the docs</h2>
-<p>The documentation source is in <code>docs/</code> and is rendered as a Quarto website:</p>
+<section id="render-the-documentation" class="level2">
+<h2 class="anchored" data-anchor-id="render-the-documentation">Render the documentation</h2>
+<p>The website source is in <code>docs/</code> and is rendered with Quarto. Render it after editing the <code>.qmd</code> or Markdown sources:</p>
 <pre class="console"><code>quarto render docs</code></pre>
+<p>For an interactive local preview that refreshes as you edit:</p>
+<pre class="console"><code>quarto preview docs</code></pre>
+<p>Generated output lives in <code>docs/_site/</code> and is ignored by Git.</p>
 
 
 </section>

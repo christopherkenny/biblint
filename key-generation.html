@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -172,8 +172,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#citekey-generation" id="toc-citekey-generation" class="nav-link active" data-scroll-target="#citekey-generation">Citekey generation</a>
   <ul class="collapse">
   <li><a href="#default-formula" id="toc-default-formula" class="nav-link" data-scroll-target="#default-formula">Default formula</a></li>
-  <li><a href="#configuration" id="toc-configuration" class="nav-link" data-scroll-target="#configuration">Configuration</a></li>
-  <li><a href="#updating-markdown-citations" id="toc-updating-markdown-citations" class="nav-link" data-scroll-target="#updating-markdown-citations">Updating Markdown citations</a></li>
+  <li><a href="#configure-checking-and-generation" id="toc-configure-checking-and-generation" class="nav-link" data-scroll-target="#configure-checking-and-generation">Configure checking and generation</a></li>
+  <li><a href="#update-citations-in-one-document" id="toc-update-citations-in-one-document" class="nav-link" data-scroll-target="#update-citations-in-one-document">Update citations in one document</a></li>
   <li><a href="#supported-formula-syntax" id="toc-supported-formula-syntax" class="nav-link" data-scroll-target="#supported-formula-syntax">Supported formula syntax</a></li>
   <li><a href="#determinism-and-safety" id="toc-determinism-and-safety" class="nav-link" data-scroll-target="#determinism-and-safety">Determinism and safety</a></li>
   </ul></li>
@@ -188,8 +188,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="citekey-generation" class="level1">
 <h1>Citekey generation</h1>
-<p><code>biblint</code> can check existing citation keys and generate deterministic suggestions from BibTeX entries. The <code>better-bibtex</code> style uses a deterministic subset of Better BibTeX’s formula syntax and reads only data in the <code>.bib</code> file.</p>
-<p>Unsupported functions and filters are rejected when the configuration is loaded.</p>
+<p><code>biblint</code> can check existing citation keys and generate deterministic suggestions from BibTeX entries. There are two separate choices:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 26%">
+<col style="width: 17%">
+<col style="width: 56%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Goal</th>
+<th>Setting</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Audit existing keys</td>
+<td><code>key_format</code> under <code>[lint]</code></td>
+<td>Reports a suggestion; never renames a key.</td>
+</tr>
+<tr class="even">
+<td>Apply generated keys</td>
+<td><code>generate-keys</code> under <code>[format]</code></td>
+<td>Replaces keys while formatting.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>better-bibtex</code> style implements a deterministic subset of Better BibTeX’s formula syntax and reads only data present in the <code>.bib</code> file. Unsupported functions and filters are rejected when the configuration loads.</p>
 <section id="default-formula" class="level2">
 <h2 class="anchored" data-anchor-id="default-formula">Default formula</h2>
 <p>The built-in formula is:</p>
@@ -202,16 +228,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>appends the first significant word of <code>title</code></li>
 </ol>
 <p><code>shorttitle</code> removes common stopwords before counting words. The <code>0</code> preserves the title fragment’s original capitalization.</p>
-<p>For example:</p>
+<p>For example, this entry:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">old</span>,</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = {Smith, John},</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = {A Study of Things},</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span> = {2024}</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>produces the suggestion <code>smith2024Study</code>. By default, collisions receive alphabetic suffixes such as <code>a</code>, <code>b</code>, and <code>aa</code>. Entries without enough key material are left unchanged.</p>
+<p>produces the suggestion <code>smith2024Study</code>. Existing keys reserve their values, so collisions receive alphabetic suffixes such as <code>a</code>, <code>b</code>, and <code>aa</code>. Entries without enough key material are left unchanged.</p>
 </section>
-<section id="configuration" class="level2">
-<h2 class="anchored" data-anchor-id="configuration">Configuration</h2>
+<section id="configure-checking-and-generation" class="level2">
+<h2 class="anchored" data-anchor-id="configure-checking-and-generation">Configure checking and generation</h2>
 <p>Keep the formula in the repository’s <code>biblint.toml</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key_format"</span><span class="op">]</span></span>
@@ -225,21 +251,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
 <span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth.lower + year + shorttitle(1,0)"</span></span>
 <span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="dt">collision-suffix</span> <span class="op">=</span> <span class="st">"alphabetic"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The formula is optional because the example is the default. <code>key_format</code> reports differences but does not rename existing keys. <code>generate-keys = true</code> enables replacement as a formatter transform. With <code>check --format --fix</code>, it requires <code>--unsafe-fixes</code>:</p>
-<pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes
-biblint format references.bib</code></pre>
+<p>The formula in this example is the default and can be omitted. With only <code>key_format</code> enabled, <code>check</code> reports differences but does not rename existing keys. <code>generate-keys = true</code> enables replacement as a formatter transform.</p>
+<p>To inspect key suggestions without writing files:</p>
+<pre class="console"><code>biblint check references.bib</code></pre>
+<p>To preview the generated keys and any other configured formatting changes:</p>
+<pre class="console"><code>biblint format references.bib --diff</code></pre>
+<p>The standalone <code>format</code> command applies the configured profile directly after you review the diff. If you apply the profile through <code>check --format --fix</code>, key generation is an unsafe fix and must be explicit:</p>
+<pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes</code></pre>
 </section>
-<section id="updating-markdown-citations" class="level2">
-<h2 class="anchored" data-anchor-id="updating-markdown-citations">Updating Markdown citations</h2>
-<p>Changing a key can also update references in one related document. Pass an explicit <code>.md</code>, <code>.qmd</code>, or <code>.Rmd</code> path while checking one explicit BibTeX file:</p>
-<pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes \
-  --update-markdown manuscript.qmd</code></pre>
-<p>The option requires <code>--format</code>, <code>--fix</code>, and <code>--unsafe-fixes</code> because citation key changes affect document identity. It updates Pandoc-style bracketed citations. This includes citations with multiple keys or locators. It also updates textual citations.</p>
+<section id="update-citations-in-one-document" class="level2">
+<h2 class="anchored" data-anchor-id="update-citations-in-one-document">Update citations in one document</h2>
+<p>When generated keys change, biblint can update references in one related Markdown, Quarto, or R Markdown document. Pass an explicit <code>.md</code>, <code>.qmd</code>, or <code>.Rmd</code> path while checking exactly one explicit BibTeX file:</p>
+<pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes --update-markdown manuscript.qmd</code></pre>
+<p>The option requires <code>--format</code>, <code>--fix</code>, and <code>--unsafe-fixes</code> because citation key changes affect document identity. It updates Pandoc-style bracketed citations, including citations with multiple keys or locators, and textual citations.</p>
 <p>Fenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.</p>
-<p>For author/year keys that reserve the first suffix letter, use <code>collision-suffix = "skip-a"</code>. The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear"</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="dt">collision-suffix</span> <span class="op">=</span> <span class="st">"skip-a"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For author/year keys that reserve the first suffix letter, use <code>collision-suffix = "skip-a"</code>. This formula uses the full surname for one creator and the first three letters of up to three creators otherwise:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear"</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="dt">collision-suffix</span> <span class="op">=</span> <span class="st">"skip-a"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Creator lists follow standard BibTeX name syntax: separate creators with the word <code>and</code>.</p>
 </section>
 <section id="supported-formula-syntax" class="level2">
@@ -269,7 +298,7 @@ biblint format references.bib</code></pre>
 </section>
 <section id="determinism-and-safety" class="level2">
 <h2 class="anchored" data-anchor-id="determinism-and-safety">Determinism and safety</h2>
-<p>The same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order.</p>
+<p>The same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order. Because a generated key can be referenced outside the <code>.bib</code> file, preview key changes and update related citations in the same reviewed change.</p>
 
 
 </section>

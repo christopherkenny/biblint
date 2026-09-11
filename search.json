@@ -1,31 +1,115 @@
 [
   {
+    "objectID": "configuration.html",
+    "href": "configuration.html",
+    "title": "Configuration",
+    "section": "",
+    "text": "biblint.toml answers three questions:\nKeep the file in version control, usually at the repository root. The command line chooses the operation (check or format); the configuration chooses the policy shared by both commands."
+  },
+  {
+    "objectID": "configuration.html#find-the-right-files",
+    "href": "configuration.html#find-the-right-files",
+    "title": "Configuration",
+    "section": "Find the right files",
+    "text": "Find the right files\nWithout --config, biblint searches upward from the first input path until it finds biblint.toml. An explicitly supplied config path takes precedence. This means a command launched from a subdirectory still uses the repository policy.\nFor a directory input, biblint visits .bib files recursively. include and exclude patterns then decide which files are used:\ninclude = [\"**/*.bib\"]\nexclude = [\"vendor/**\", \"generated/**\"]\ndefault-exclude = true\nAn explicit file does not need a .bib extension, although it is still subject to the configured include and exclude patterns. Recursive scans skip .git/** and target/** when default-exclude is true."
+  },
+  {
+    "objectID": "configuration.html#select-rules",
+    "href": "configuration.html#select-rules",
+    "title": "Configuration",
+    "section": "Select rules",
+    "text": "Select rules\nThe default rule set is a useful starting point. Use extend-select to add opt-in rules while keeping the defaults, or use select when you want to define the complete set yourself. ignore always wins over either selection method.\n[lint]\n# Add checks without removing the defaults.\nextend-select = [\"duplicate_doi\", \"key_format\"]\n\n# Replace the defaults entirely when a small, explicit set is preferable.\n# select = [\"syntax_error\", \"duplicate_key\"]\n\n# Disable a selected rule, including one added above.\n# ignore = [\"key_format\"]\nUse all as a wildcard. Per-file ignores use the same rule names and are useful for generated or legacy data:\n[lint.per-file-ignores]\n\"generated/**\" = [\"formatting\", \"unsupported_construct\"]\nFormatting is not part of check by default because it is a rewrite rather than a content diagnostic. Use biblint check --format for a one-off formatting check, select formatting in the config, or use biblint format --check when formatting is the only gate you need."
+  },
+  {
+    "objectID": "configuration.html#a-practical-starter-file",
+    "href": "configuration.html#a-practical-starter-file",
+    "title": "Configuration",
+    "section": "A practical starter file",
+    "text": "A practical starter file\nThis profile scans project bibliographies, ignores vendored/generated files, adds duplicate DOI/citation and citekey checks, and sorts the output predictably:\ninclude = [\"**/*.bib\"]\nexclude = [\"vendor/**\", \"generated/**\"]\ndefault-exclude = true\n\n[lint]\nextend-select = [\"duplicate_doi\", \"duplicate_citation\", \"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\nindent = 2\nalign = false\nlowercase = true\nsort = [\"key\"]\nsort-fields = [\"title\", \"author\", \"year\"]\nThe key-format section enables the Better BibTeX-compatible style for checking existing keys. It does not rename them; see Citekey generation when you want to generate and apply new keys."
+  },
+  {
+    "objectID": "configuration.html#validate-a-configuration",
+    "href": "configuration.html#validate-a-configuration",
+    "title": "Configuration",
+    "section": "Validate a configuration",
+    "text": "Validate a configuration\nUnknown settings, rule names, invalid globs, and invalid citekey formulas are rejected when the configuration loads. Settings omitted from the file use their defaults, so start small and add only the policy your project needs."
+  },
+  {
+    "objectID": "formatting.html",
+    "href": "formatting.html",
+    "title": "Formatting",
+    "section": "",
+    "text": "biblint format writes a canonical representation of the BibTeX it understands. It is deliberately conservative: the default profile changes presentation, not the spelling of bibliographic values or the identity of entries.\nUse --diff to preview a change, --check to make formatting a CI gate, and no flag to write the configured profile:\nThe command above prints a unified diff and leaves references.bib untouched. Once the diff is acceptable, run biblint format references.bib to write it."
+  },
+  {
+    "objectID": "formatting.html#default-shape",
+    "href": "formatting.html#default-shape",
+    "title": "Formatting",
+    "section": "Default shape",
+    "text": "Default shape\nInput:\n@ARTICLE{Smith2024,\nauthor={Smith, John},\ntitle={A Study},\nyear=2024\n}\nDefault output:\n@article{Smith2024,\n  author = {Smith, John},\n  title = {A Study},\n  year = 2024\n}\nThe default profile lowercases entry types and field names, uses two-space indentation, and separates entries with a blank line. It does not align equals signs, sort entries or fields, add braces, change values, or remove duplicate and empty fields."
+  },
+  {
+    "objectID": "formatting.html#layout-and-ordering",
+    "href": "formatting.html#layout-and-ordering",
+    "title": "Formatting",
+    "section": "Layout and ordering",
+    "text": "Layout and ordering\nSet layout preferences under [format]:\n[format]\nindent = 2                 # a space count, or \"tab\"\nalign = false              # or a field-name column number\nblank-lines = true\nlowercase = true\ntrailing-commas = true\nwrap = 80                  # false disables wrapping\nsort = [\"key\"]             # true uses key order\nsort-fields = [\"title\", \"author\", \"year\"]\nsort controls entry order. sort-fields controls field order within each entry; true uses biblint’s built-in field order. Lists provide an explicit order, and fields not named in a list remain after the named fields."
+  },
+  {
+    "objectID": "formatting.html#value-transforms",
+    "href": "formatting.html#value-transforms",
+    "title": "Formatting",
+    "section": "Value transforms",
+    "text": "Value transforms\nThese options change value spelling or representation, so enable them only when that is part of the repository’s policy:\n\n\n\n\n\n\n\nSetting\nEffect\n\n\n\n\ncurly\nEnclose values in braces.\n\n\nnumeric\nRender numeric values as bare literals.\n\n\nmonths\nNormalize recognized month names.\n\n\nformat-page-ranges\nNormalize page ranges.\n\n\nescape / unescape\nConvert supported text between Unicode and LaTeX.\n\n\nencode-urls\nEncode URL underscores.\n\n\nstrip-enclosing-braces\nRemove one outer brace group.\n\n\nenclosing-braces / remove-braces\nSelect fields whose brace depth changes.\n\n\ndrop-all-caps\nConvert all-caps values to title case.\n\n\nwrap\nWrap long values at a configured width.\n\n\nlowercase\nLowercase entry types and field names; enabled by default.\n\n\n\nThe escape table is package-independent. Characters that have no built-in LaTeX escape are preserved and reported by unsupported_escape when the relevant check is enabled."
+  },
+  {
+    "objectID": "formatting.html#cleanup-and-semantic-transforms",
+    "href": "formatting.html#cleanup-and-semantic-transforms",
+    "title": "Formatting",
+    "section": "Cleanup and semantic transforms",
+    "text": "Cleanup and semantic transforms\nUse these settings when you intentionally want to remove, merge, or otherwise change data:\n[format]\nremove-empty-fields = true\nremove-duplicate-fields = true\nomit = [\"abstract\"]\nstrip-comments = true\ntidy-comments = true\nmax-authors = 3\ngenerate-keys = true\nduplicate-kinds = [\"doi\", \"citation\"]\nmerge = \"combine\"\nmerge accepts first, last, combine, and overwrite. When duplicate-kinds is empty, merging considers DOI, citation, and abstract duplicates. Add key if key duplicates should also be merged. Without a merge strategy, duplicate entries are preserved.\ngenerate-keys uses the same formula evaluator as the key_format rule. See Citekey generation for the supported Better BibTeX syntax."
+  },
+  {
+    "objectID": "formatting.html#fix-safety",
+    "href": "formatting.html#fix-safety",
+    "title": "Formatting",
+    "section": "Fix safety",
+    "text": "Fix safety\ncheck --format --fix applies the formatting diagnostic only when formatting is enabled, and it applies safe fixes by default. Add --unsafe-fixes when the configured profile includes a transform that can remove information or change entry identity:\nbiblint check references.bib --format --fix --unsafe-fixes\nThis safety gate covers citekey generation, merging, omission or removal of fields/braces/comments, all-caps conversion, unescaping, duplicate/empty-field cleanup, and author truncation. The standalone format command applies the configured profile directly, so preview it with --diff first."
+  },
+  {
+    "objectID": "formatting.html#preserved-source",
+    "href": "formatting.html#preserved-source",
+    "title": "Formatting",
+    "section": "Preserved source",
+    "text": "Preserved source\nComments, special entries, and unstructured source are retained unless a configured transform targets them. Unstructured source is reported as unsupported_construct rather than discarded."
+  },
+  {
     "objectID": "key-generation.html",
     "href": "key-generation.html",
     "title": "Citekey generation",
     "section": "",
-    "text": "biblint can check existing citation keys and generate deterministic suggestions from BibTeX entries. The better-bibtex style uses a deterministic subset of Better BibTeX’s formula syntax and reads only data in the .bib file.\nUnsupported functions and filters are rejected when the configuration is loaded.\n\n\nThe built-in formula is:\nauth.lower + year + shorttitle(1,0)\nIt:\n\nuses the first creator surname, falling back through author, editor, translator, and collaborator\nlowercases that surname\nappends the first four digits found in year\nappends the first significant word of title\n\nshorttitle removes common stopwords before counting words. The 0 preserves the title fragment’s original capitalization.\nFor example:\n@article{old,\n  author = {Smith, John},\n  title = {A Study of Things},\n  year = {2024}\n}\nproduces the suggestion smith2024Study. By default, collisions receive alphabetic suffixes such as a, b, and aa. Entries without enough key material are left unchanged.\n\n\n\nKeep the formula in the repository’s biblint.toml:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\ngenerate-keys = true\n\n[format.key-generation]\nformula = \"auth.lower + year + shorttitle(1,0)\"\ncollision-suffix = \"alphabetic\"\nThe formula is optional because the example is the default. key_format reports differences but does not rename existing keys. generate-keys = true enables replacement as a formatter transform. With check --format --fix, it requires --unsafe-fixes:\nbiblint check references.bib --format --fix --unsafe-fixes\nbiblint format references.bib\n\n\n\nChanging a key can also update references in one related document. Pass an explicit .md, .qmd, or .Rmd path while checking one explicit BibTeX file:\nbiblint check references.bib --format --fix --unsafe-fixes \\\n  --update-markdown manuscript.qmd\nThe option requires --format, --fix, and --unsafe-fixes because citation key changes affect document identity. It updates Pandoc-style bracketed citations. This includes citations with multiple keys or locators. It also updates textual citations.\nFenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.\nFor author/year keys that reserve the first suffix letter, use collision-suffix = \"skip-a\". The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:\n[format.key-generation]\nformula = \"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear\"\ncollision-suffix = \"skip-a\"\nCreator lists follow standard BibTeX name syntax: separate creators with the word and.\n\n\n\nFormula names are case-insensitive. The evaluator supports:\n\ndirect BibTeX fields, such as title, doi, and shortauthor\nquoted strings and numbers, for example \"-\" and 2024\nconcatenation with +\nfallbacks with ||, and top-level alternate patterns separated by a semicolon or |\nconditional composition with &&\nternaries such as language == \"en\" ? \"eng\" : \"\"\nlength comparisons using ==, !=, &lt;, &lt;=, &gt;, or &gt;=\nchained filters such as auth.lower.clean\npositional and named function arguments, such as substring(start=1,n=3)\n\nThe implemented entry functions are:\n\ncreators: auth, authAuthEa, authEtAl, authEtal2, authForeIni, authIni, authorIni, authorLast, authors, authorsAlpha, authorsn, and authshort\nentry fields and metadata: date, extra, firstpage, journal, language, lastpage, month, origdate, origyear, shortyear, title, type, and year\ntitle fragments: shorttitle and veryshorttitle\n\nThe implemented filters are abbr, alphanum, ascii, capitalize, clean, condense, default, discard, len, lower, nopunct, nopunctordash, numeric, postfix, prefix, replace, select, skipwords, substring, transliterate, and upper.\nFor example, this formula uses a short author field from Better BibTeX’s extra data when it is present and otherwise falls back to the BibTeX author:\nextra('tex.shortauthor').clean.lower || auth.lower\nextra(...) reads matching key: value lines from the BibTeX extra field. Functions and filters outside the supported lists are configuration errors.\n\n\n\nThe same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order."
+    "text": "biblint can check existing citation keys and generate deterministic suggestions from BibTeX entries. There are two separate choices:\n\n\n\n\n\n\n\n\nGoal\nSetting\nResult\n\n\n\n\nAudit existing keys\nkey_format under [lint]\nReports a suggestion; never renames a key.\n\n\nApply generated keys\ngenerate-keys under [format]\nReplaces keys while formatting.\n\n\n\nThe better-bibtex style implements a deterministic subset of Better BibTeX’s formula syntax and reads only data present in the .bib file. Unsupported functions and filters are rejected when the configuration loads.\n\n\nThe built-in formula is:\nauth.lower + year + shorttitle(1,0)\nIt:\n\nuses the first creator surname, falling back through author, editor, translator, and collaborator\nlowercases that surname\nappends the first four digits found in year\nappends the first significant word of title\n\nshorttitle removes common stopwords before counting words. The 0 preserves the title fragment’s original capitalization.\nFor example, this entry:\n@article{old,\n  author = {Smith, John},\n  title = {A Study of Things},\n  year = {2024}\n}\nproduces the suggestion smith2024Study. Existing keys reserve their values, so collisions receive alphabetic suffixes such as a, b, and aa. Entries without enough key material are left unchanged.\n\n\n\nKeep the formula in the repository’s biblint.toml:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\ngenerate-keys = true\n\n[format.key-generation]\nformula = \"auth.lower + year + shorttitle(1,0)\"\ncollision-suffix = \"alphabetic\"\nThe formula in this example is the default and can be omitted. With only key_format enabled, check reports differences but does not rename existing keys. generate-keys = true enables replacement as a formatter transform.\nTo inspect key suggestions without writing files:\nbiblint check references.bib\nTo preview the generated keys and any other configured formatting changes:\nbiblint format references.bib --diff\nThe standalone format command applies the configured profile directly after you review the diff. If you apply the profile through check --format --fix, key generation is an unsafe fix and must be explicit:\nbiblint check references.bib --format --fix --unsafe-fixes\n\n\n\nWhen generated keys change, biblint can update references in one related Markdown, Quarto, or R Markdown document. Pass an explicit .md, .qmd, or .Rmd path while checking exactly one explicit BibTeX file:\nbiblint check references.bib --format --fix --unsafe-fixes --update-markdown manuscript.qmd\nThe option requires --format, --fix, and --unsafe-fixes because citation key changes affect document identity. It updates Pandoc-style bracketed citations, including citations with multiple keys or locators, and textual citations.\nFenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.\nFor author/year keys that reserve the first suffix letter, use collision-suffix = \"skip-a\". This formula uses the full surname for one creator and the first three letters of up to three creators otherwise:\n[format.key-generation]\nformula = \"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear\"\ncollision-suffix = \"skip-a\"\nCreator lists follow standard BibTeX name syntax: separate creators with the word and.\n\n\n\nFormula names are case-insensitive. The evaluator supports:\n\ndirect BibTeX fields, such as title, doi, and shortauthor\nquoted strings and numbers, for example \"-\" and 2024\nconcatenation with +\nfallbacks with ||, and top-level alternate patterns separated by a semicolon or |\nconditional composition with &&\nternaries such as language == \"en\" ? \"eng\" : \"\"\nlength comparisons using ==, !=, &lt;, &lt;=, &gt;, or &gt;=\nchained filters such as auth.lower.clean\npositional and named function arguments, such as substring(start=1,n=3)\n\nThe implemented entry functions are:\n\ncreators: auth, authAuthEa, authEtAl, authEtal2, authForeIni, authIni, authorIni, authorLast, authors, authorsAlpha, authorsn, and authshort\nentry fields and metadata: date, extra, firstpage, journal, language, lastpage, month, origdate, origyear, shortyear, title, type, and year\ntitle fragments: shorttitle and veryshorttitle\n\nThe implemented filters are abbr, alphanum, ascii, capitalize, clean, condense, default, discard, len, lower, nopunct, nopunctordash, numeric, postfix, prefix, replace, select, skipwords, substring, transliterate, and upper.\nFor example, this formula uses a short author field from Better BibTeX’s extra data when it is present and otherwise falls back to the BibTeX author:\nextra('tex.shortauthor').clean.lower || auth.lower\nextra(...) reads matching key: value lines from the BibTeX extra field. Functions and filters outside the supported lists are configuration errors.\n\n\n\nThe same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order. Because a generated key can be referenced outside the .bib file, preview key changes and update related citations in the same reviewed change."
   },
   {
     "objectID": "key-generation.html#default-formula",
     "href": "key-generation.html#default-formula",
     "title": "Citekey generation",
     "section": "",
-    "text": "The built-in formula is:\nauth.lower + year + shorttitle(1,0)\nIt:\n\nuses the first creator surname, falling back through author, editor, translator, and collaborator\nlowercases that surname\nappends the first four digits found in year\nappends the first significant word of title\n\nshorttitle removes common stopwords before counting words. The 0 preserves the title fragment’s original capitalization.\nFor example:\n@article{old,\n  author = {Smith, John},\n  title = {A Study of Things},\n  year = {2024}\n}\nproduces the suggestion smith2024Study. By default, collisions receive alphabetic suffixes such as a, b, and aa. Entries without enough key material are left unchanged."
+    "text": "The built-in formula is:\nauth.lower + year + shorttitle(1,0)\nIt:\n\nuses the first creator surname, falling back through author, editor, translator, and collaborator\nlowercases that surname\nappends the first four digits found in year\nappends the first significant word of title\n\nshorttitle removes common stopwords before counting words. The 0 preserves the title fragment’s original capitalization.\nFor example, this entry:\n@article{old,\n  author = {Smith, John},\n  title = {A Study of Things},\n  year = {2024}\n}\nproduces the suggestion smith2024Study. Existing keys reserve their values, so collisions receive alphabetic suffixes such as a, b, and aa. Entries without enough key material are left unchanged."
   },
   {
-    "objectID": "key-generation.html#configuration",
-    "href": "key-generation.html#configuration",
+    "objectID": "key-generation.html#configure-checking-and-generation",
+    "href": "key-generation.html#configure-checking-and-generation",
     "title": "Citekey generation",
     "section": "",
-    "text": "Keep the formula in the repository’s biblint.toml:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\ngenerate-keys = true\n\n[format.key-generation]\nformula = \"auth.lower + year + shorttitle(1,0)\"\ncollision-suffix = \"alphabetic\"\nThe formula is optional because the example is the default. key_format reports differences but does not rename existing keys. generate-keys = true enables replacement as a formatter transform. With check --format --fix, it requires --unsafe-fixes:\nbiblint check references.bib --format --fix --unsafe-fixes\nbiblint format references.bib"
+    "text": "Keep the formula in the repository’s biblint.toml:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\ngenerate-keys = true\n\n[format.key-generation]\nformula = \"auth.lower + year + shorttitle(1,0)\"\ncollision-suffix = \"alphabetic\"\nThe formula in this example is the default and can be omitted. With only key_format enabled, check reports differences but does not rename existing keys. generate-keys = true enables replacement as a formatter transform.\nTo inspect key suggestions without writing files:\nbiblint check references.bib\nTo preview the generated keys and any other configured formatting changes:\nbiblint format references.bib --diff\nThe standalone format command applies the configured profile directly after you review the diff. If you apply the profile through check --format --fix, key generation is an unsafe fix and must be explicit:\nbiblint check references.bib --format --fix --unsafe-fixes"
   },
   {
-    "objectID": "key-generation.html#updating-markdown-citations",
-    "href": "key-generation.html#updating-markdown-citations",
+    "objectID": "key-generation.html#update-citations-in-one-document",
+    "href": "key-generation.html#update-citations-in-one-document",
     "title": "Citekey generation",
     "section": "",
-    "text": "Changing a key can also update references in one related document. Pass an explicit .md, .qmd, or .Rmd path while checking one explicit BibTeX file:\nbiblint check references.bib --format --fix --unsafe-fixes \\\n  --update-markdown manuscript.qmd\nThe option requires --format, --fix, and --unsafe-fixes because citation key changes affect document identity. It updates Pandoc-style bracketed citations. This includes citations with multiple keys or locators. It also updates textual citations.\nFenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.\nFor author/year keys that reserve the first suffix letter, use collision-suffix = \"skip-a\". The following formula uses the full surname for one creator and the first three letters of up to three creators otherwise:\n[format.key-generation]\nformula = \"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear\"\ncollision-suffix = \"skip-a\"\nCreator lists follow standard BibTeX name syntax: separate creators with the word and."
+    "text": "When generated keys change, biblint can update references in one related Markdown, Quarto, or R Markdown document. Pass an explicit .md, .qmd, or .Rmd path while checking exactly one explicit BibTeX file:\nbiblint check references.bib --format --fix --unsafe-fixes --update-markdown manuscript.qmd\nThe option requires --format, --fix, and --unsafe-fixes because citation key changes affect document identity. It updates Pandoc-style bracketed citations, including citations with multiple keys or locators, and textual citations.\nFenced code, inline code, HTML tags, HTML comments, and email-like addresses are preserved. A directory check or standard-input check cannot use this paired update.\nFor author/year keys that reserve the first suffix letter, use collision-suffix = \"skip-a\". This formula uses the full surname for one creator and the first three letters of up to three creators otherwise:\n[format.key-generation]\nformula = \"auth(0,m=2) ? auth(3,m=1) + auth(3,m=2) + auth(3,m=3) + shortyear : auth + shortyear\"\ncollision-suffix = \"skip-a\"\nCreator lists follow standard BibTeX name syntax: separate creators with the word and."
   },
   {
     "objectID": "key-generation.html#supported-formula-syntax",
@@ -39,56 +123,84 @@
     "href": "key-generation.html#determinism-and-safety",
     "title": "Citekey generation",
     "section": "",
-    "text": "The same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order."
+    "text": "The same BibTeX input and committed configuration produce the same suggestions. Existing keys are reserved, and collision suffixes are assigned in document order. Because a generated key can be referenced outside the .bib file, preview key changes and update related citations in the same reviewed change."
   },
   {
-    "objectID": "formatting.html",
-    "href": "formatting.html",
-    "title": "Formatting",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "biblint",
     "section": "",
-    "text": "biblint format writes a canonical representation of the BibTeX it understands. By default it changes layout, entry-type spelling, and field-name spelling only."
+    "text": "biblint checks BibTeX files for syntax and bibliography problems, then formats them into a consistent representation. Keep the configuration in your repository so local runs and CI use the same policy."
   },
   {
-    "objectID": "formatting.html#default-shape",
-    "href": "formatting.html#default-shape",
-    "title": "Formatting",
-    "section": "Default shape",
-    "text": "Default shape\nInput:\n@ARTICLE{Smith2024,\nauthor={Smith, John},\ntitle={A Study},\nyear=2024\n}\nDefault output:\n@article{Smith2024,\n  author = {Smith, John},\n  title = {A Study},\n  year = 2024\n}\nThe default does not align equals signs, sort entries or fields, add braces, change values, or remove duplicate and empty fields. It separates entries with a blank line."
+    "objectID": "index.html#a-safe-first-workflow",
+    "href": "index.html#a-safe-first-workflow",
+    "title": "biblint",
+    "section": "A safe first workflow",
+    "text": "A safe first workflow\n\n1. Check the project\nRun the linter from the project root. A directory is searched recursively for .bib files, and the default-enabled rules run automatically unless your configuration selects a different set.\nbiblint check .\n\n\n2. Preview formatting\nUse --diff when you want to inspect the formatter’s exact changes. This command does not write files.\nbiblint format . --diff\n\n\n3. Apply the profile\nAfter reviewing the diff, format the project in place:\nbiblint format .\nIf you want biblint to make only safe changes while checking, use check --format --fix. Content-changing transforms remain disabled unless you explicitly add --unsafe-fixes."
   },
   {
-    "objectID": "formatting.html#layout-and-ordering",
-    "href": "formatting.html#layout-and-ordering",
-    "title": "Formatting",
-    "section": "Layout and ordering",
-    "text": "Layout and ordering\n[format]\nindent = 2                 # a space count, or \"tab\"\nalign = false              # or a field-name column number\nblank-lines = true\ntrailing-commas = true\nwrap = 80                  # false disables wrapping\nsort = [\"key\"]\nsort-fields = [\"title\", \"author\", \"year\"]\nalign = false disables alignment. sort = true uses key order, and sort-fields = true uses biblint’s built-in field order. Lists provide an explicit order."
+    "objectID": "index.html#pick-the-command-by-goal",
+    "href": "index.html#pick-the-command-by-goal",
+    "title": "biblint",
+    "section": "Pick the command by goal",
+    "text": "Pick the command by goal\n\n\n\n\n\n\n\n\nI want to…\nUse\nWhat happens\n\n\n\n\nFind syntax and lint issues\nbiblint check .\nReports diagnostics; writes nothing.\n\n\nInclude formatting in the check\nbiblint check . --format\nAdds a formatting diagnostic; writes nothing.\n\n\nFix safe issues automatically\nbiblint check . --format --fix\nWrites safe fixes, including formatting.\n\n\nFormat files directly\nbiblint format .\nWrites the configured representation.\n\n\nGate formatting in CI\nbiblint format . --check\nReports files that would change and exits nonzero.\n\n\nReview a formatting diff\nbiblint format . --diff\nPrints a unified diff and writes nothing.\n\n\nIntegrate diagnostics with a tool\nbiblint check . --output json\nPrints diagnostics as JSON.\n\n\nLearn about a rule\nbiblint rule &lt;name&gt;\nPrints that rule’s summary and fix status."
   },
   {
-    "objectID": "formatting.html#value-transforms",
-    "href": "formatting.html#value-transforms",
-    "title": "Formatting",
-    "section": "Value transforms",
-    "text": "Value transforms\nThese settings are opt-in because they alter value spelling or representation:\n\n\n\n\n\n\n\nSetting\nEffect\n\n\n\n\ncurly\nEnclose values in braces.\n\n\nnumeric\nRender numeric values as bare literals.\n\n\nmonths\nNormalize recognized month names.\n\n\nformat-page-ranges\nNormalize page ranges.\n\n\nescape / unescape\nConvert supported text between Unicode and LaTeX.\n\n\nencode-urls\nEncode URL underscores.\n\n\nstrip-enclosing-braces\nRemove one outer brace group.\n\n\nenclosing-braces / remove-braces\nSelect fields whose brace depth changes.\n\n\ndrop-all-caps\nConvert all-caps values to title case.\n\n\nwrap\nWrap long values at a configured width.\n\n\nlowercase\nLowercase entry types and field names. Enabled by default.\n\n\n\nThe escape table is package-independent. Unconvertible characters are preserved and reported by unsupported_escape."
+    "objectID": "index.html#what-biblint-reads",
+    "href": "index.html#what-biblint-reads",
+    "title": "biblint",
+    "section": "What biblint reads",
+    "text": "What biblint reads\n\nA directory contributes .bib files recursively.\nAn explicit file is checked even if its extension is not .bib.\n- reads one BibTeX document from standard input.\nbiblint.toml is discovered by searching upward from the first input path.\n\nSee Configuration for include/exclude patterns and rule selection. See Formatting for the changes made by default and the transforms you can opt into.\n\n\n\n\n\n\nWarningBefore enabling transforms\n\n\n\nFormatting is intentionally conservative by default. Options such as citekey generation, merging, field removal, brace removal, and author truncation can change content or citation identity. Preview them with biblint format &lt;path&gt; --diff before writing, and use --unsafe-fixes when applying them through check --format --fix."
   },
   {
-    "objectID": "formatting.html#cleanup-and-semantic-transforms",
-    "href": "formatting.html#cleanup-and-semantic-transforms",
-    "title": "Formatting",
-    "section": "Cleanup and semantic transforms",
-    "text": "Cleanup and semantic transforms\n[format]\nremove-empty-fields = true\nremove-duplicate-fields = true\nomit = [\"abstract\"]\nstrip-comments = true\ntidy-comments = true\nmax-authors = 3\ngenerate-keys = true\nduplicate-kinds = [\"doi\", \"citation\"]\nmerge = \"combine\"\nThese settings can remove information, change author lists, generate keys, or merge entries. merge accepts first, last, combine, and overwrite. By default it considers DOI, citation, and abstract duplicates. Add key to duplicate-kinds to include key duplicates.\ngenerate-keys uses the same formula evaluator as the key_format rule. See Citekey generation for a Better BibTeX syntax subset."
+    "objectID": "index.html#continue-with-a-task",
+    "href": "index.html#continue-with-a-task",
+    "title": "biblint",
+    "section": "Continue with a task",
+    "text": "Continue with a task\n\nConfigure a project — choose files, rules, and formatting policy\nFormat BibTeX — understand defaults and opt-in transforms\nExplore rules — enable checks, suppress individual entries, and find duplicates\nGenerate citekeys — use the supported Better BibTeX formula subset\nDevelop biblint — run workspace checks and render this site"
   },
   {
-    "objectID": "formatting.html#fix-safety",
-    "href": "formatting.html#fix-safety",
-    "title": "Formatting",
-    "section": "Fix safety",
-    "text": "Fix safety\ncheck --format --fix applies safe formatting edits when formatting is explicitly enabled. For a formatting-only policy check, use biblint format references.bib --check. Transforms that can change content or identity require:\nbiblint check references.bib --format --fix --unsafe-fixes\nThe standalone format command applies the configured profile directly."
+    "objectID": "rules.html",
+    "href": "rules.html",
+    "title": "Rules",
+    "section": "",
+    "text": "Rules report problems in a BibTeX project. Run biblint check to use the configured rule set, biblint rule to list every rule, or biblint rule &lt;name&gt; to read one rule’s summary and fix status."
   },
   {
-    "objectID": "formatting.html#preserved-source",
-    "href": "formatting.html#preserved-source",
-    "title": "Formatting",
-    "section": "Preserved source",
-    "text": "Preserved source\nComments, special entries, and unstructured source are retained unless a configured transform targets them. Unstructured source is reported as unsupported_construct rather than discarded."
+    "objectID": "rules.html#rule-reference",
+    "href": "rules.html#rule-reference",
+    "title": "Rules",
+    "section": "Rule reference",
+    "text": "Rule reference\nThe default set focuses on syntax and structural problems. Formatting, citekey style, and project-wide duplicate comparisons are opt-in:\n\n\n\n\n\n\n\n\n\n\nRule\nDefault\nSeverity\nFix\nPurpose\n\n\n\n\nsyntax_error\nyes\nerror\nnone\nBibTeX syntax is incomplete or unbalanced.\n\n\nformatting\nno\nnote\nsafe\nThe file would be reformatted by biblint.\n\n\nmissing_key\nyes\nwarning\nnone\nAn entry has no citation key.\n\n\nkey_format\nno\nwarning\nnone\nAn existing key differs from the configured key formula.\n\n\nduplicate_key\nyes\nwarning\nnone\nA citation key is used more than once.\n\n\nduplicate_doi\nno\nwarning\nnone\nTwo entries share a DOI.\n\n\nduplicate_citation\nno\nwarning\nnone\nTwo entries share a normalized citation fingerprint.\n\n\nduplicate_abstract\nno\nwarning\nnone\nTwo entries share an abstract fingerprint.\n\n\nduplicate_field\nyes\nwarning\nnone\nAn entry repeats a field name.\n\n\nempty_field\nyes\nwarning\nnone\nA field has no value.\n\n\nnonstandard_name_separator\nyes\nwarning\nnone\nA creator list uses with or a comma before and.\n\n\ninvalid_suppression\nyes\nwarning\nnone\nA suppression comment is malformed, misplaced, or obsolete.\n\n\nunsupported_escape\nyes\nnote\nnone\nA character has no built-in LaTeX escape.\n\n\nunsupported_construct\nyes\nnote\nnone\nSource was preserved because it could not be structured.\n\n\n\nWarnings produce exit status 1; errors produce exit status 2. Notes are still diagnostics and therefore also make check return 1 when they are reported. See Configuration for changing the selection."
+  },
+  {
+    "objectID": "rules.html#inline-suppressions",
+    "href": "rules.html#inline-suppressions",
+    "title": "Rules",
+    "section": "Inline suppressions",
+    "text": "Inline suppressions\nPlace a standalone % biblint-ignore comment immediately before the entry it belongs to. Name one or more rules, and optionally add a reason after ::\n% biblint-ignore nonstandard_name_separator duplicate_field: legacy source\n@book{garfinkel1997,\n  author = {Simson Garfinkel with Gene Spafford},\n}\nThe directive applies only to the next BibTeX entry. Multiple directives before one entry are combined. Suppressions cannot hide syntax errors or whole-file formatting diagnostics, and malformed, misplaced, or unused directives are reported by invalid_suppression.\nnonstandard_name_separator checks author, editor, translator, and collaborator values. It only examines text outside nested braces and does not rewrite values. A literal phrase such as Smith with Jones can be protected by bracing the intended literal name."
+  },
+  {
+    "objectID": "rules.html#select-rules",
+    "href": "rules.html#select-rules",
+    "title": "Rules",
+    "section": "Select rules",
+    "text": "Select rules\nUse select to replace the default set, extend-select to add to it, and ignore to disable a rule regardless of how it was selected:\n[lint]\nselect = [\"duplicate_key\"]\nextend-select = [\"key_format\", \"duplicate_doi\"]\nignore = [\"unsupported_escape\"]\nUse all as a wildcard. Per-file exceptions use the same rule names:\n[lint.per-file-ignores]\n\"generated/**\" = [\"formatting\", \"unsupported_construct\"]\nFormatting is not enabled for check by default because it is a mechanical rewrite rather than a content diagnostic. For a one-off formatting check, add --format to the command. For a formatting-only gate, use biblint format &lt;path&gt; --check."
+  },
+  {
+    "objectID": "rules.html#project-level-checks",
+    "href": "rules.html#project-level-checks",
+    "title": "Rules",
+    "section": "Project-level checks",
+    "text": "Project-level checks\nWhen checking a directory or multiple files, biblint also detects duplicates across files. DOI, citation, and abstract comparisons are disabled by default; enable only the comparisons useful for the project. A single explicit file gets single-file checks and does not create a project-wide comparison."
+  },
+  {
+    "objectID": "rules.html#key-format-checks",
+    "href": "rules.html#key-format-checks",
+    "title": "Rules",
+    "section": "Key-format checks",
+    "text": "Key-format checks\nkey_format is disabled by default because changing a citation key can break references elsewhere. Enable it explicitly to report suggestions:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\nThe rule reports a suggestion but does not rename keys automatically. See Citekey generation to configure the formula and, if desired, apply generated keys through the formatter."
   },
   {
     "objectID": "development.html",
@@ -98,136 +210,24 @@
     "text": "biblint is a Rust 2024 workspace with four crates:\nThe minimum supported Rust version is 1.88. Keep parser, formatter, and rule changes lossless: source biblint cannot structure must remain visible rather than being dropped."
   },
   {
-    "objectID": "development.html#checks",
-    "href": "development.html#checks",
+    "objectID": "development.html#before-submitting-a-change",
+    "href": "development.html#before-submitting-a-change",
     "title": "Development",
-    "section": "Checks",
-    "text": "Checks\nRun the workspace checks before submitting changes:\ncargo fmt --all -- --check\ncargo clippy --workspace --all-targets -- -D warnings\ncargo test --workspace"
+    "section": "Before submitting a change",
+    "text": "Before submitting a change\nRun these checks from the repository root. Each command answers a different question, so a failure is easier to diagnose when they are run separately.\nFirst, check that Rust formatting is unchanged:\ncargo fmt --all -- --check\nThen run Clippy with warnings treated as errors:\ncargo clippy --workspace --all-targets -- -D warnings\nFinally, run the full workspace test suite:\ncargo test --workspace"
   },
   {
     "objectID": "development.html#adding-behavior",
     "href": "development.html#adding-behavior",
     "title": "Development",
     "section": "Adding behavior",
-    "text": "Adding behavior\nKeep formatting policy in biblint-format, configuration and diagnostics in biblint-core, and CLI concerns in biblint. Add focused regression tests for new transforms and rules.\nThe citekey formula evaluator follows the same rule: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only. Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs."
+    "text": "Adding behavior\nKeep formatting policy in biblint-format, configuration and diagnostics in biblint-core, and CLI concerns in biblint. Add focused regression tests for new transforms and rules.\nThe citekey formula evaluator follows the same boundary: its syntax is inspired by Better BibTeX, but its implementation and tests live in biblint and operate on BibTeX data only. Do not add a Zotero-only construct unless there is a deterministic BibTeX representation for its inputs."
   },
   {
-    "objectID": "development.html#rendering-the-docs",
-    "href": "development.html#rendering-the-docs",
+    "objectID": "development.html#render-the-documentation",
+    "href": "development.html#render-the-documentation",
     "title": "Development",
-    "section": "Rendering the docs",
-    "text": "Rendering the docs\nThe documentation source is in docs/ and is rendered as a Quarto website:\nquarto render docs"
-  },
-  {
-    "objectID": "rules.html",
-    "href": "rules.html",
-    "title": "Rules",
-    "section": "",
-    "text": "Rules report problems in a BibTeX project. Run biblint rule to list them, or biblint rule &lt;name&gt; for one rule’s summary."
-  },
-  {
-    "objectID": "rules.html#rule-reference",
-    "href": "rules.html#rule-reference",
-    "title": "Rules",
-    "section": "Rule reference",
-    "text": "Rule reference\n\n\n\n\n\n\n\n\n\nRule\nDefault\nFix\nPurpose\n\n\n\n\nsyntax_error\nyes\nnone\nBibTeX syntax is incomplete or unbalanced.\n\n\nformatting\nno\nsafe/configured\nThe file would be reformatted by biblint.\n\n\nmissing_key\nyes\nnone\nAn entry has no citation key.\n\n\nkey_format\nno\nnone\nAn existing key differs from the configured key formula.\n\n\nduplicate_key\nyes\nnone\nA citation key is used more than once.\n\n\nduplicate_doi\nno\nnone\nTwo entries share a DOI.\n\n\nduplicate_citation\nno\nnone\nTwo entries share a normalized citation fingerprint.\n\n\nduplicate_abstract\nno\nnone\nTwo entries share an abstract fingerprint.\n\n\nduplicate_field\nyes\nnone\nAn entry repeats a field name.\n\n\nempty_field\nyes\nnone\nA field has no value.\n\n\nnonstandard_name_separator\nyes\nnone\nA name-list field uses with or a comma before and.\n\n\ninvalid_suppression\nyes\nnone\nA suppression comment is malformed, misplaced, or obsolete.\n\n\nunsupported_escape\nyes\nnone\nA character has no built-in LaTeX escape.\n\n\nunsupported_construct\nyes\nnone\nSource was preserved because it could not be structured.\n\n\n\nsyntax_error has error severity. Most other structural problems are warnings. Preserved source and unsupported characters are notes.\nnonstandard_name_separator checks author, editor, translator, and collaborator values. It only examines text outside nested braces, does not rewrite values, and does not inspect prose fields such as title or note."
-  },
-  {
-    "objectID": "rules.html#inline-suppressions",
-    "href": "rules.html#inline-suppressions",
-    "title": "Rules",
-    "section": "Inline suppressions",
-    "text": "Inline suppressions\nA standalone % biblint-ignore &lt;rule&gt; [&lt;rule&gt; ...][: &lt;reason&gt;] comment suppresses the named rules for the next BibTeX entry:\n% biblint-ignore nonstandard_name_separator duplicate_field\n@book{garfinkel1997,\n  author = {Simson Garfinkel with Gene Spafford},\n}\nThe reason after : is optional. Multiple comments before one entry are also combined. Suppressions cannot hide syntax errors or whole-file formatting diagnostics. Malformed, misplaced, or unused directives are reported by invalid_suppression.\nFormatting is not enabled for check by default because it is a mechanical rewrite rather than a content diagnostic. Use check --format to include it, select formatting in biblint.toml, or use format --check as a formatting-only gate."
-  },
-  {
-    "objectID": "rules.html#selecting-rules",
-    "href": "rules.html#selecting-rules",
-    "title": "Rules",
-    "section": "Selecting rules",
-    "text": "Selecting rules\n[lint]\nselect = [\"duplicate_key\"]\nextend-select = [\"key_format\", \"duplicate_doi\"]\nignore = [\"unsupported_escape\"]\nselect replaces the default set. extend-select adds rules, and ignore takes precedence. Use all as a wildcard. Per-file exceptions use the same rule names:\n[lint.per-file-ignores]\n\"generated/**\" = [\"formatting\", \"unsupported_construct\"]"
-  },
-  {
-    "objectID": "rules.html#project-level-checks",
-    "href": "rules.html#project-level-checks",
-    "title": "Rules",
-    "section": "Project-level checks",
-    "text": "Project-level checks\nWhen checking a directory or multiple files, biblint also detects duplicates across files. DOI, citation, and abstract rules are disabled by default. Enable only the comparisons useful for the project."
-  },
-  {
-    "objectID": "rules.html#key-format-checks",
-    "href": "rules.html#key-format-checks",
-    "title": "Rules",
-    "section": "Key-format checks",
-    "text": "Key-format checks\nkey_format is disabled by default because changing a citation key can break references elsewhere. Enable it explicitly:\n[lint]\nextend-select = [\"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\nThe rule reports a suggestion but does not rename keys automatically. See Citekey generation to configure the formula."
-  },
-  {
-    "objectID": "configuration.html",
-    "href": "configuration.html",
-    "title": "Configuration",
-    "section": "",
-    "text": "biblint.toml contains formatting policy, rule selection, and file discovery. The command line chooses the operation and output format."
-  },
-  {
-    "objectID": "configuration.html#discovery",
-    "href": "configuration.html#discovery",
-    "title": "Configuration",
-    "section": "Discovery",
-    "text": "Discovery\nWithout --config, biblint searches upward from the input path. An explicitly supplied config path takes precedence. Commit one config file at the repository root so collaborators and CI share the policy.\nThe top-level file-selection settings apply to both check and format:\ninclude = [\"**/*.bib\"]\nexclude = [\"vendor/**\"]\ndefault-exclude = true\nDirectories contribute .bib files recursively. Explicit file arguments are accepted regardless of extension. With default-exclude = true, .git/** and target/** are skipped."
-  },
-  {
-    "objectID": "configuration.html#rule-selection",
-    "href": "configuration.html#rule-selection",
-    "title": "Configuration",
-    "section": "Rule selection",
-    "text": "Rule selection\n[lint]\n# `select` replaces the default rule set.\nselect = [\"duplicate_key\", \"duplicate_doi\"]\n\n# `extend-select` adds rules without removing defaults.\nextend-select = [\"key_format\"]\n\n# `ignore` wins over selection.\nignore = [\"unsupported_escape\"]\n\n[lint.per-file-ignores]\n\"generated/**\" = [\"formatting\"]\nUse all as a wildcard. If select is omitted, default-enabled rules run. extend-select adds opt-in rules, while ignore takes precedence. Per-file ignores use the same rule names.\nThe formatting rule is opt-in for check. Use biblint check --format for a one-off check or add it to select/extend-select in the configuration. biblint format --check checks formatting independently of lint rule selection."
-  },
-  {
-    "objectID": "configuration.html#starter-configuration",
-    "href": "configuration.html#starter-configuration",
-    "title": "Configuration",
-    "section": "Starter configuration",
-    "text": "Starter configuration\ninclude = [\"**/*.bib\"]\nexclude = [\"vendor/**\", \"generated/**\"]\ndefault-exclude = true\n\n[lint]\nextend-select = [\"duplicate_doi\", \"duplicate_citation\", \"key_format\"]\n\n[lint.key-format]\nstyle = \"better-bibtex\"\n\n[format]\nindent = 2\nalign = false\nlowercase = true\nsort = [\"key\"]\nsort-fields = [\"title\", \"author\", \"year\"]\n\n[format.key-generation]\nformula = \"auth.lower + year + shorttitle(1,0)\"\nThe formula is optional because it is biblint’s default. See Citekey generation for the available syntax."
-  },
-  {
-    "objectID": "configuration.html#validation",
-    "href": "configuration.html#validation",
-    "title": "Configuration",
-    "section": "Validation",
-    "text": "Validation\nUnknown settings, rule names, invalid globs, and invalid formulas are rejected when the configuration is loaded. Settings not specified in the file use their defaults."
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "biblint",
-    "section": "",
-    "text": "biblint is a BibTeX linter and formatter. Commit biblint.toml so collaborators and CI use the same policy."
-  },
-  {
-    "objectID": "index.html#commands",
-    "href": "index.html#commands",
-    "title": "biblint",
-    "section": "Commands",
-    "text": "Commands\nbiblint check .\nbiblint check . --format\nbiblint check references.bib --format --fix\nbiblint check references.bib --format --fix --unsafe-fixes\nbiblint check . --output json\nbiblint format references.bib\nbiblint format . --check\nbiblint format references.bib --diff\nbiblint rule\nbiblint rule duplicate_key\ncheck reports syntax and lint diagnostics by default. check --format additionally reports whether files would be reformatted. format writes the configured representation, --check reports whether a file would change, and --diff prints the change without writing it.\nBoth commands accept files, directories, and standard input (-). Directories contribute .bib files recursively. See Configuration for discovery and policy settings."
-  },
-  {
-    "objectID": "index.html#workflow",
-    "href": "index.html#workflow",
-    "title": "biblint",
-    "section": "Workflow",
-    "text": "Workflow\nUse check to review a project and format to apply its configured format:\nbiblint check .\nbiblint check . --format --fix\nbiblint format references.bib --diff\ncheck --format --fix applies safe formatting changes. Key generation, merging, field removal, brace removal, and author truncation also require --unsafe-fixes."
-  },
-  {
-    "objectID": "index.html#defaults",
-    "href": "index.html#defaults",
-    "title": "biblint",
-    "section": "Defaults",
-    "text": "Defaults\nWithout a configuration file, format normalizes layout, entry types, and field names while preserving value spelling. Other transforms and optional checks are enabled in biblint.toml."
-  },
-  {
-    "objectID": "index.html#documentation",
-    "href": "index.html#documentation",
-    "title": "biblint",
-    "section": "Documentation",
-    "text": "Documentation\n\nConfiguration — discovery and policy settings\nFormatting — layout and value transforms\nRules — diagnostics and defaults\nCitekey generation — formula syntax"
+    "section": "Render the documentation",
+    "text": "Render the documentation\nThe website source is in docs/ and is rendered with Quarto. Render it after editing the .qmd or Markdown sources:\nquarto render docs\nFor an interactive local preview that refreshes as you edit:\nquarto preview docs\nGenerated output lives in docs/_site/ and is ignored by Git."
   }
 ]

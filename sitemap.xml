@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://christopherkenny.github.io/biblint/key-generation.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
+    <loc>https://christopherkenny.github.io/biblint/configuration.html</loc>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
   </url>
   <url>
     <loc>https://christopherkenny.github.io/biblint/formatting.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
   </url>
   <url>
-    <loc>https://christopherkenny.github.io/biblint/development.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
-  </url>
-  <url>
-    <loc>https://christopherkenny.github.io/biblint/rules.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
-  </url>
-  <url>
-    <loc>https://christopherkenny.github.io/biblint/configuration.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
+    <loc>https://christopherkenny.github.io/biblint/key-generation.html</loc>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
   </url>
   <url>
     <loc>https://christopherkenny.github.io/biblint/index.html</loc>
-    <lastmod>2026-08-29T23:37:39.444Z</lastmod>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
+  </url>
+  <url>
+    <loc>https://christopherkenny.github.io/biblint/rules.html</loc>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
+  </url>
+  <url>
+    <loc>https://christopherkenny.github.io/biblint/development.html</loc>
+    <lastmod>2026-09-11T14:18:43.403Z</lastmod>
   </url>
 </urlset>

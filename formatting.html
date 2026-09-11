@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -200,38 +200,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><code>biblint format</code> writes a canonical representation of the BibTeX it understands. By default it changes layout, entry-type spelling, and field-name spelling only.</p>
+<p><code>biblint format</code> writes a canonical representation of the BibTeX it understands. It is deliberately conservative: the default profile changes presentation, not the spelling of bibliographic values or the identity of entries.</p>
+<p>Use <code>--diff</code> to preview a change, <code>--check</code> to make formatting a CI gate, and no flag to write the configured profile:</p>
+<pre class="console"><code>biblint format references.bib --diff</code></pre>
+<p>The command above prints a unified diff and leaves <code>references.bib</code> untouched. Once the diff is acceptable, run <code>biblint format references.bib</code> to write it.</p>
 <section id="default-shape" class="level2">
 <h2 class="anchored" data-anchor-id="default-shape">Default shape</h2>
 <p>Input:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">@ARTICLE</span>{<span class="ot">Smith2024</span>,</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">author</span>={Smith, John},</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span>={A Study},</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">year</span>=2024</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Default output:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">Smith2024</span>,</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = {Smith, John},</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = {A Study},</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span> = 2024</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">@ARTICLE</span>{<span class="ot">Smith2024</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">author</span>={Smith, John},</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">title</span>={A Study},</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">year</span>=2024</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The default does not align equals signs, sort entries or fields, add braces, change values, or remove duplicate and empty fields. It separates entries with a blank line.</p>
+<p>Default output:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">@article</span>{<span class="ot">Smith2024</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = {Smith, John},</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">title</span> = {A Study},</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">year</span> = 2024</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The default profile lowercases entry types and field names, uses two-space indentation, and separates entries with a blank line. It does not align equals signs, sort entries or fields, add braces, change values, or remove duplicate and empty fields.</p>
 </section>
 <section id="layout-and-ordering" class="level2">
 <h2 class="anchored" data-anchor-id="layout-and-ordering">Layout and ordering</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">indent</span> <span class="op">=</span> <span class="dv">2</span>                 <span class="co"># a space count, or "tab"</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">align</span> <span class="op">=</span> <span class="cn">false</span>              <span class="co"># or a field-name column number</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="dt">blank-lines</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="dt">trailing-commas</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="dt">wrap</span> <span class="op">=</span> <span class="dv">80</span>                  <span class="co"># false disables wrapping</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="dt">sort</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key"</span><span class="op">]</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="dt">sort-fields</span> <span class="op">=</span> <span class="op">[</span><span class="st">"title"</span><span class="op">,</span> <span class="st">"author"</span><span class="op">,</span> <span class="st">"year"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>align = false</code> disables alignment. <code>sort = true</code> uses key order, and <code>sort-fields = true</code> uses biblint’s built-in field order. Lists provide an explicit order.</p>
+<p>Set layout preferences under <code>[format]</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">indent</span> <span class="op">=</span> <span class="dv">2</span>                 <span class="co"># a space count, or "tab"</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">align</span> <span class="op">=</span> <span class="cn">false</span>              <span class="co"># or a field-name column number</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">blank-lines</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">lowercase</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="dt">trailing-commas</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="dt">wrap</span> <span class="op">=</span> <span class="dv">80</span>                  <span class="co"># false disables wrapping</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="dt">sort</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key"</span><span class="op">]</span>             <span class="co"># true uses key order</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">sort-fields</span> <span class="op">=</span> <span class="op">[</span><span class="st">"title"</span><span class="op">,</span> <span class="st">"author"</span><span class="op">,</span> <span class="st">"year"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>sort</code> controls entry order. <code>sort-fields</code> controls field order within each entry; <code>true</code> uses biblint’s built-in field order. Lists provide an explicit order, and fields not named in a list remain after the named fields.</p>
 </section>
 <section id="value-transforms" class="level2">
 <h2 class="anchored" data-anchor-id="value-transforms">Value transforms</h2>
-<p>These settings are opt-in because they alter value spelling or representation:</p>
+<p>These options change value spelling or representation, so enable them only when that is part of the repository’s policy:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 15%">
@@ -286,32 +291,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <td><code>lowercase</code></td>
-<td>Lowercase entry types and field names. Enabled by default.</td>
+<td>Lowercase entry types and field names; enabled by default.</td>
 </tr>
 </tbody>
 </table>
-<p>The escape table is package-independent. Unconvertible characters are preserved and reported by <code>unsupported_escape</code>.</p>
+<p>The escape table is package-independent. Characters that have no built-in LaTeX escape are preserved and reported by <code>unsupported_escape</code> when the relevant check is enabled.</p>
 </section>
 <section id="cleanup-and-semantic-transforms" class="level2">
 <h2 class="anchored" data-anchor-id="cleanup-and-semantic-transforms">Cleanup and semantic transforms</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">remove-empty-fields</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">remove-duplicate-fields</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="dt">omit</span> <span class="op">=</span> <span class="op">[</span><span class="st">"abstract"</span><span class="op">]</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">strip-comments</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="dt">tidy-comments</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="dt">max-authors</span> <span class="op">=</span> <span class="dv">3</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="dt">generate-keys</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">duplicate-kinds</span> <span class="op">=</span> <span class="op">[</span><span class="st">"doi"</span><span class="op">,</span> <span class="st">"citation"</span><span class="op">]</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="dt">merge</span> <span class="op">=</span> <span class="st">"combine"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>These settings can remove information, change author lists, generate keys, or merge entries. <code>merge</code> accepts <code>first</code>, <code>last</code>, <code>combine</code>, and <code>overwrite</code>. By default it considers DOI, citation, and abstract duplicates. Add <code>key</code> to <code>duplicate-kinds</code> to include key duplicates.</p>
-<p><code>generate-keys</code> uses the same formula evaluator as the <code>key_format</code> rule. See <a href="./key-generation.html">Citekey generation</a> for a Better BibTeX syntax subset.</p>
+<p>Use these settings when you intentionally want to remove, merge, or otherwise change data:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">remove-empty-fields</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="dt">remove-duplicate-fields</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="dt">omit</span> <span class="op">=</span> <span class="op">[</span><span class="st">"abstract"</span><span class="op">]</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="dt">strip-comments</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="dt">tidy-comments</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="dt">max-authors</span> <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="dt">generate-keys</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="dt">duplicate-kinds</span> <span class="op">=</span> <span class="op">[</span><span class="st">"doi"</span><span class="op">,</span> <span class="st">"citation"</span><span class="op">]</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="dt">merge</span> <span class="op">=</span> <span class="st">"combine"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>merge</code> accepts <code>first</code>, <code>last</code>, <code>combine</code>, and <code>overwrite</code>. When <code>duplicate-kinds</code> is empty, merging considers DOI, citation, and abstract duplicates. Add <code>key</code> if key duplicates should also be merged. Without a <code>merge</code> strategy, duplicate entries are preserved.</p>
+<p><code>generate-keys</code> uses the same formula evaluator as the <code>key_format</code> rule. See <a href="./key-generation.html">Citekey generation</a> for the supported Better BibTeX syntax.</p>
 </section>
 <section id="fix-safety" class="level2">
 <h2 class="anchored" data-anchor-id="fix-safety">Fix safety</h2>
-<p><code>check --format --fix</code> applies safe formatting edits when formatting is explicitly enabled. For a formatting-only policy check, use <code>biblint format references.bib --check</code>. Transforms that can change content or identity require:</p>
+<p><code>check --format --fix</code> applies the formatting diagnostic only when formatting is enabled, and it applies safe fixes by default. Add <code>--unsafe-fixes</code> when the configured profile includes a transform that can remove information or change entry identity:</p>
 <pre class="console"><code>biblint check references.bib --format --fix --unsafe-fixes</code></pre>
-<p>The standalone <code>format</code> command applies the configured profile directly.</p>
+<p>This safety gate covers citekey generation, merging, omission or removal of fields/braces/comments, all-caps conversion, unescaping, duplicate/empty-field cleanup, and author truncation. The standalone <code>format</code> command applies the configured profile directly, so preview it with <code>--diff</code> first.</p>
 </section>
 <section id="preserved-source" class="level2">
 <h2 class="anchored" data-anchor-id="preserved-source">Preserved source</h2>

@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -169,10 +169,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#discovery" id="toc-discovery" class="nav-link active" data-scroll-target="#discovery">Discovery</a></li>
-  <li><a href="#rule-selection" id="toc-rule-selection" class="nav-link" data-scroll-target="#rule-selection">Rule selection</a></li>
-  <li><a href="#starter-configuration" id="toc-starter-configuration" class="nav-link" data-scroll-target="#starter-configuration">Starter configuration</a></li>
-  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">Validation</a></li>
+  <li><a href="#find-the-right-files" id="toc-find-the-right-files" class="nav-link active" data-scroll-target="#find-the-right-files">Find the right files</a></li>
+  <li><a href="#select-rules" id="toc-select-rules" class="nav-link" data-scroll-target="#select-rules">Select rules</a></li>
+  <li><a href="#a-practical-starter-file" id="toc-a-practical-starter-file" class="nav-link" data-scroll-target="#a-practical-starter-file">A practical starter file</a></li>
+  <li><a href="#validate-a-configuration" id="toc-validate-a-configuration" class="nav-link" data-scroll-target="#validate-a-configuration">Validate a configuration</a></li>
   </ul>
 </nav>
     </div>
@@ -198,59 +198,63 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p><code>biblint.toml</code> contains formatting policy, rule selection, and file discovery. The command line chooses the operation and output format.</p>
-<section id="discovery" class="level2">
-<h2 class="anchored" data-anchor-id="discovery">Discovery</h2>
-<p>Without <code>--config</code>, biblint searches upward from the input path. An explicitly supplied config path takes precedence. Commit one config file at the repository root so collaborators and CI share the policy.</p>
-<p>The top-level file-selection settings apply to both <code>check</code> and <code>format</code>:</p>
+<p><code>biblint.toml</code> answers three questions:</p>
+<ol type="1">
+<li>Which BibTeX files belong to this project?</li>
+<li>Which lint rules should run?</li>
+<li>How should matching files be formatted?</li>
+</ol>
+<p>Keep the file in version control, usually at the repository root. The command line chooses the operation (<code>check</code> or <code>format</code>); the configuration chooses the policy shared by both commands.</p>
+<section id="find-the-right-files" class="level2">
+<h2 class="anchored" data-anchor-id="find-the-right-files">Find the right files</h2>
+<p>Without <code>--config</code>, biblint searches upward from the first input path until it finds <code>biblint.toml</code>. An explicitly supplied config path takes precedence. This means a command launched from a subdirectory still uses the repository policy.</p>
+<p>For a directory input, biblint visits <code>.bib</code> files recursively. <code>include</code> and <code>exclude</code> patterns then decide which files are used:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">include</span> <span class="op">=</span> <span class="op">[</span><span class="st">"**/*.bib"</span><span class="op">]</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">exclude</span> <span class="op">=</span> <span class="op">[</span><span class="st">"vendor/**"</span><span class="op">]</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">exclude</span> <span class="op">=</span> <span class="op">[</span><span class="st">"vendor/**"</span><span class="op">,</span> <span class="st">"generated/**"</span><span class="op">]</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">default-exclude</span> <span class="op">=</span> <span class="cn">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Directories contribute <code>.bib</code> files recursively. Explicit file arguments are accepted regardless of extension. With <code>default-exclude = true</code>, <code>.git/**</code> and <code>target/**</code> are skipped.</p>
+<p>An explicit file does not need a <code>.bib</code> extension, although it is still subject to the configured include and exclude patterns. Recursive scans skip <code>.git/**</code> and <code>target/**</code> when <code>default-exclude</code> is <code>true</code>.</p>
 </section>
-<section id="rule-selection" class="level2">
-<h2 class="anchored" data-anchor-id="rule-selection">Rule selection</h2>
+<section id="select-rules" class="level2">
+<h2 class="anchored" data-anchor-id="select-rules">Select rules</h2>
+<p>The default rule set is a useful starting point. Use <code>extend-select</code> to add opt-in rules while keeping the defaults, or use <code>select</code> when you want to define the complete set yourself. <code>ignore</code> always wins over either selection method.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># `select` replaces the default rule set.</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"duplicate_key"</span><span class="op">,</span> <span class="st">"duplicate_doi"</span><span class="op">]</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Add checks without removing the defaults.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"duplicate_doi"</span><span class="op">,</span> <span class="st">"key_format"</span><span class="op">]</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># `extend-select` adds rules without removing defaults.</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key_format"</span><span class="op">]</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace the defaults entirely when a small, explicit set is preferable.</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># select = ["syntax_error", "duplicate_key"]</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># `ignore` wins over selection.</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dt">ignore</span> <span class="op">=</span> <span class="op">[</span><span class="st">"unsupported_escape"</span><span class="op">]</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.per-file-ignores]</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="dt">"generated/**"</span> <span class="op">=</span> <span class="op">[</span><span class="st">"formatting"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Use <code>all</code> as a wildcard. If <code>select</code> is omitted, default-enabled rules run. <code>extend-select</code> adds opt-in rules, while <code>ignore</code> takes precedence. Per-file ignores use the same rule names.</p>
-<p>The <code>formatting</code> rule is opt-in for <code>check</code>. Use <code>biblint check --format</code> for a one-off check or add it to <code>select</code>/<code>extend-select</code> in the configuration. <code>biblint format --check</code> checks formatting independently of lint rule selection.</p>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Disable a selected rule, including one added above.</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># ignore = ["key_format"]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Use <code>all</code> as a wildcard. Per-file ignores use the same rule names and are useful for generated or legacy data:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.per-file-ignores]</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">"generated/**"</span> <span class="op">=</span> <span class="op">[</span><span class="st">"formatting"</span><span class="op">,</span> <span class="st">"unsupported_construct"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Formatting is not part of <code>check</code> by default because it is a rewrite rather than a content diagnostic. Use <code>biblint check --format</code> for a one-off formatting check, select <code>formatting</code> in the config, or use <code>biblint format --check</code> when formatting is the only gate you need.</p>
 </section>
-<section id="starter-configuration" class="level2">
-<h2 class="anchored" data-anchor-id="starter-configuration">Starter configuration</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">include</span> <span class="op">=</span> <span class="op">[</span><span class="st">"**/*.bib"</span><span class="op">]</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">exclude</span> <span class="op">=</span> <span class="op">[</span><span class="st">"vendor/**"</span><span class="op">,</span> <span class="st">"generated/**"</span><span class="op">]</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="dt">default-exclude</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"duplicate_doi"</span><span class="op">,</span> <span class="st">"duplicate_citation"</span><span class="op">,</span> <span class="st">"key_format"</span><span class="op">]</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.key-format]</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="dt">style</span> <span class="op">=</span> <span class="st">"better-bibtex"</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="dt">indent</span> <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="dt">align</span> <span class="op">=</span> <span class="cn">false</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="dt">lowercase</span> <span class="op">=</span> <span class="cn">true</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="dt">sort</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key"</span><span class="op">]</span></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="dt">sort-fields</span> <span class="op">=</span> <span class="op">[</span><span class="st">"title"</span><span class="op">,</span> <span class="st">"author"</span><span class="op">,</span> <span class="st">"year"</span><span class="op">]</span></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="kw">[format.key-generation]</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="dt">formula</span> <span class="op">=</span> <span class="st">"auth.lower + year + shorttitle(1,0)"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The formula is optional because it is biblint’s default. See <a href="./key-generation.html">Citekey generation</a> for the available syntax.</p>
+<section id="a-practical-starter-file" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-starter-file">A practical starter file</h2>
+<p>This profile scans project bibliographies, ignores vendored/generated files, adds duplicate DOI/citation and citekey checks, and sorts the output predictably:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">include</span> <span class="op">=</span> <span class="op">[</span><span class="st">"**/*.bib"</span><span class="op">]</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">exclude</span> <span class="op">=</span> <span class="op">[</span><span class="st">"vendor/**"</span><span class="op">,</span> <span class="st">"generated/**"</span><span class="op">]</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">default-exclude</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"duplicate_doi"</span><span class="op">,</span> <span class="st">"duplicate_citation"</span><span class="op">,</span> <span class="st">"key_format"</span><span class="op">]</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.key-format]</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="dt">style</span> <span class="op">=</span> <span class="st">"better-bibtex"</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[format]</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="dt">indent</span> <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="dt">align</span> <span class="op">=</span> <span class="cn">false</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="dt">lowercase</span> <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="dt">sort</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key"</span><span class="op">]</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="dt">sort-fields</span> <span class="op">=</span> <span class="op">[</span><span class="st">"title"</span><span class="op">,</span> <span class="st">"author"</span><span class="op">,</span> <span class="st">"year"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The key-format section enables the Better BibTeX-compatible style for checking existing keys. It does not rename them; see <a href="./key-generation.html">Citekey generation</a> when you want to generate and apply new keys.</p>
 </section>
-<section id="validation" class="level2">
-<h2 class="anchored" data-anchor-id="validation">Validation</h2>
-<p>Unknown settings, rule names, invalid globs, and invalid formulas are rejected when the configuration is loaded. Settings not specified in the file use their defaults.</p>
+<section id="validate-a-configuration" class="level2">
+<h2 class="anchored" data-anchor-id="validate-a-configuration">Validate a configuration</h2>
+<p>Unknown settings, rule names, invalid globs, and invalid citekey formulas are rejected when the configuration loads. Settings omitted from the file use their defaults, so start small and add only the policy your project needs.</p>
 
 
 </section>

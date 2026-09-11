@@ -45,7 +45,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -134,10 +134,15 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#commands" id="toc-commands" class="nav-link active" data-scroll-target="#commands">Commands</a></li>
-  <li><a href="#workflow" id="toc-workflow" class="nav-link" data-scroll-target="#workflow">Workflow</a></li>
-  <li><a href="#defaults" id="toc-defaults" class="nav-link" data-scroll-target="#defaults">Defaults</a></li>
-  <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation">Documentation</a></li>
+  <li><a href="#a-safe-first-workflow" id="toc-a-safe-first-workflow" class="nav-link active" data-scroll-target="#a-safe-first-workflow">A safe first workflow</a>
+  <ul class="collapse">
+  <li><a href="#check-the-project" id="toc-check-the-project" class="nav-link" data-scroll-target="#check-the-project">1. Check the project</a></li>
+  <li><a href="#preview-formatting" id="toc-preview-formatting" class="nav-link" data-scroll-target="#preview-formatting">2. Preview formatting</a></li>
+  <li><a href="#apply-the-profile" id="toc-apply-the-profile" class="nav-link" data-scroll-target="#apply-the-profile">3. Apply the profile</a></li>
+  </ul></li>
+  <li><a href="#pick-the-command-by-goal" id="toc-pick-the-command-by-goal" class="nav-link" data-scroll-target="#pick-the-command-by-goal">Pick the command by goal</a></li>
+  <li><a href="#what-biblint-reads" id="toc-what-biblint-reads" class="nav-link" data-scroll-target="#what-biblint-reads">What biblint reads</a></li>
+  <li><a href="#continue-with-a-task" id="toc-continue-with-a-task" class="nav-link" data-scroll-target="#continue-with-a-task">Continue with a task</a></li>
   </ul>
 </nav>
     </div>
@@ -147,6 +152,7 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">biblint</h1>
+<p class="subtitle lead">Deterministic BibTeX linting and formatting</p>
 </div>
 
 
@@ -163,41 +169,129 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p><code>biblint</code> is a BibTeX linter and formatter. Commit <code>biblint.toml</code> so collaborators and CI use the same policy.</p>
-<section id="commands" class="level2">
-<h2 class="anchored" data-anchor-id="commands">Commands</h2>
-<pre class="console"><code>biblint check .
-biblint check . --format
-biblint check references.bib --format --fix
-biblint check references.bib --format --fix --unsafe-fixes
-biblint check . --output json
-biblint format references.bib
-biblint format . --check
-biblint format references.bib --diff
-biblint rule
-biblint rule duplicate_key</code></pre>
-<p><code>check</code> reports syntax and lint diagnostics by default. <code>check --format</code> additionally reports whether files would be reformatted. <code>format</code> writes the configured representation, <code>--check</code> reports whether a file would change, and <code>--diff</code> prints the change without writing it.</p>
-<p>Both commands accept files, directories, and standard input (<code>-</code>). Directories contribute <code>.bib</code> files recursively. See <a href="./configuration.html">Configuration</a> for discovery and policy settings.</p>
+<p><code>biblint</code> checks BibTeX files for syntax and bibliography problems, then formats them into a consistent representation. Keep the configuration in your repository so local runs and CI use the same policy.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>New here?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Start with <code>biblint check .</code>. It scans the current project without changing any files. The path is optional: <code>.</code> is the default.</p>
+</div>
+</div>
+<section id="a-safe-first-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="a-safe-first-workflow">A safe first workflow</h2>
+<section id="check-the-project" class="level3">
+<h3 class="anchored" data-anchor-id="check-the-project">1. Check the project</h3>
+<p>Run the linter from the project root. A directory is searched recursively for <code>.bib</code> files, and the default-enabled rules run automatically unless your configuration selects a different set.</p>
+<pre class="console"><code>biblint check .</code></pre>
 </section>
-<section id="workflow" class="level2">
-<h2 class="anchored" data-anchor-id="workflow">Workflow</h2>
-<p>Use <code>check</code> to review a project and <code>format</code> to apply its configured format:</p>
-<pre class="console"><code>biblint check .
-biblint check . --format --fix
-biblint format references.bib --diff</code></pre>
-<p><code>check --format --fix</code> applies safe formatting changes. Key generation, merging, field removal, brace removal, and author truncation also require <code>--unsafe-fixes</code>.</p>
+<section id="preview-formatting" class="level3">
+<h3 class="anchored" data-anchor-id="preview-formatting">2. Preview formatting</h3>
+<p>Use <code>--diff</code> when you want to inspect the formatter’s exact changes. This command does not write files.</p>
+<pre class="console"><code>biblint format . --diff</code></pre>
 </section>
-<section id="defaults" class="level2">
-<h2 class="anchored" data-anchor-id="defaults">Defaults</h2>
-<p>Without a configuration file, <code>format</code> normalizes layout, entry types, and field names while preserving value spelling. Other transforms and optional checks are enabled in <code>biblint.toml</code>.</p>
+<section id="apply-the-profile" class="level3">
+<h3 class="anchored" data-anchor-id="apply-the-profile">3. Apply the profile</h3>
+<p>After reviewing the diff, format the project in place:</p>
+<pre class="console"><code>biblint format .</code></pre>
+<p>If you want biblint to make only safe changes while checking, use <code>check --format --fix</code>. Content-changing transforms remain disabled unless you explicitly add <code>--unsafe-fixes</code>.</p>
 </section>
-<section id="documentation" class="level2">
-<h2 class="anchored" data-anchor-id="documentation">Documentation</h2>
+</section>
+<section id="pick-the-command-by-goal" class="level2">
+<h2 class="anchored" data-anchor-id="pick-the-command-by-goal">Pick the command by goal</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 37%">
+<col style="width: 4%">
+<col style="width: 57%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>I want to…</th>
+<th>Use</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Find syntax and lint issues</td>
+<td><code>biblint check .</code></td>
+<td>Reports diagnostics; writes nothing.</td>
+</tr>
+<tr class="even">
+<td>Include formatting in the check</td>
+<td><code>biblint check . --format</code></td>
+<td>Adds a formatting diagnostic; writes nothing.</td>
+</tr>
+<tr class="odd">
+<td>Fix safe issues automatically</td>
+<td><code>biblint check . --format --fix</code></td>
+<td>Writes safe fixes, including formatting.</td>
+</tr>
+<tr class="even">
+<td>Format files directly</td>
+<td><code>biblint format .</code></td>
+<td>Writes the configured representation.</td>
+</tr>
+<tr class="odd">
+<td>Gate formatting in CI</td>
+<td><code>biblint format . --check</code></td>
+<td>Reports files that would change and exits nonzero.</td>
+</tr>
+<tr class="even">
+<td>Review a formatting diff</td>
+<td><code>biblint format . --diff</code></td>
+<td>Prints a unified diff and writes nothing.</td>
+</tr>
+<tr class="odd">
+<td>Integrate diagnostics with a tool</td>
+<td><code>biblint check . --output json</code></td>
+<td>Prints diagnostics as JSON.</td>
+</tr>
+<tr class="even">
+<td>Learn about a rule</td>
+<td><code>biblint rule &lt;name&gt;</code></td>
+<td>Prints that rule’s summary and fix status.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="what-biblint-reads" class="level2">
+<h2 class="anchored" data-anchor-id="what-biblint-reads">What biblint reads</h2>
 <ul>
-<li><a href="./configuration.html">Configuration</a> — discovery and policy settings</li>
-<li><a href="./formatting.html">Formatting</a> — layout and value transforms</li>
-<li><a href="./rules.html">Rules</a> — diagnostics and defaults</li>
-<li><a href="./key-generation.html">Citekey generation</a> — formula syntax</li>
+<li>A directory contributes <code>.bib</code> files recursively.</li>
+<li>An explicit file is checked even if its extension is not <code>.bib</code>.</li>
+<li><code>-</code> reads one BibTeX document from standard input.</li>
+<li><code>biblint.toml</code> is discovered by searching upward from the first input path.</li>
+</ul>
+<p>See <a href="./configuration.html">Configuration</a> for include/exclude patterns and rule selection. See <a href="./formatting.html">Formatting</a> for the changes made by default and the transforms you can opt into.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Before enabling transforms
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Formatting is intentionally conservative by default. Options such as citekey generation, merging, field removal, brace removal, and author truncation can change content or citation identity. Preview them with <code>biblint format &lt;path&gt; --diff</code> before writing, and use <code>--unsafe-fixes</code> when applying them through <code>check --format --fix</code>.</p>
+</div>
+</div>
+</section>
+<section id="continue-with-a-task" class="level2">
+<h2 class="anchored" data-anchor-id="continue-with-a-task">Continue with a task</h2>
+<ul>
+<li><a href="./configuration.html">Configure a project</a> — choose files, rules, and formatting policy</li>
+<li><a href="./formatting.html">Format BibTeX</a> — understand defaults and opt-in transforms</li>
+<li><a href="./rules.html">Explore rules</a> — enable checks, suppress individual entries, and find duplicates</li>
+<li><a href="./key-generation.html">Generate citekeys</a> — use the supported Better BibTeX formula subset</li>
+<li><a href="./development.html">Develop biblint</a> — run workspace checks and render this site</li>
 </ul>
 
 

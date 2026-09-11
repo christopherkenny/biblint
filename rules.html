@@ -80,7 +80,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fd00e54edaa1d47848c637d46a4af5ff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-cb66fc8ae7c4341af3ca04526f303d37.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -171,7 +171,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#rule-reference" id="toc-rule-reference" class="nav-link active" data-scroll-target="#rule-reference">Rule reference</a></li>
   <li><a href="#inline-suppressions" id="toc-inline-suppressions" class="nav-link" data-scroll-target="#inline-suppressions">Inline suppressions</a></li>
-  <li><a href="#selecting-rules" id="toc-selecting-rules" class="nav-link" data-scroll-target="#selecting-rules">Selecting rules</a></li>
+  <li><a href="#select-rules" id="toc-select-rules" class="nav-link" data-scroll-target="#select-rules">Select rules</a></li>
   <li><a href="#project-level-checks" id="toc-project-level-checks" class="nav-link" data-scroll-target="#project-level-checks">Project-level checks</a></li>
   <li><a href="#key-format-checks" id="toc-key-format-checks" class="nav-link" data-scroll-target="#key-format-checks">Key-format checks</a></li>
   </ul>
@@ -199,20 +199,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Rules report problems in a BibTeX project. Run <code>biblint rule</code> to list them, or <code>biblint rule &lt;name&gt;</code> for one rule’s summary.</p>
+<p>Rules report problems in a BibTeX project. Run <code>biblint check</code> to use the configured rule set, <code>biblint rule</code> to list every rule, or <code>biblint rule &lt;name&gt;</code> to read one rule’s summary and fix status.</p>
 <section id="rule-reference" class="level2">
 <h2 class="anchored" data-anchor-id="rule-reference">Rule reference</h2>
+<p>The default set focuses on syntax and structural problems. Formatting, citekey style, and project-wide duplicate comparisons are opt-in:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 4%">
 <col style="width: 8%">
-<col style="width: 17%">
-<col style="width: 69%">
+<col style="width: 9%">
+<col style="width: 4%">
+<col style="width: 71%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Rule</th>
 <th style="text-align: center;">Default</th>
+<th style="text-align: center;">Severity</th>
 <th style="text-align: center;">Fix</th>
 <th>Purpose</th>
 </tr>
@@ -221,125 +224,140 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tr class="odd">
 <td><code>syntax_error</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">error</td>
 <td style="text-align: center;">none</td>
 <td>BibTeX syntax is incomplete or unbalanced.</td>
 </tr>
 <tr class="even">
 <td><code>formatting</code></td>
 <td style="text-align: center;">no</td>
-<td style="text-align: center;">safe/configured</td>
+<td style="text-align: center;">note</td>
+<td style="text-align: center;">safe</td>
 <td>The file would be reformatted by biblint.</td>
 </tr>
 <tr class="odd">
 <td><code>missing_key</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>An entry has no citation key.</td>
 </tr>
 <tr class="even">
 <td><code>key_format</code></td>
 <td style="text-align: center;">no</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>An existing key differs from the configured key formula.</td>
 </tr>
 <tr class="odd">
 <td><code>duplicate_key</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>A citation key is used more than once.</td>
 </tr>
 <tr class="even">
 <td><code>duplicate_doi</code></td>
 <td style="text-align: center;">no</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>Two entries share a DOI.</td>
 </tr>
 <tr class="odd">
 <td><code>duplicate_citation</code></td>
 <td style="text-align: center;">no</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>Two entries share a normalized citation fingerprint.</td>
 </tr>
 <tr class="even">
 <td><code>duplicate_abstract</code></td>
 <td style="text-align: center;">no</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>Two entries share an abstract fingerprint.</td>
 </tr>
 <tr class="odd">
 <td><code>duplicate_field</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>An entry repeats a field name.</td>
 </tr>
 <tr class="even">
 <td><code>empty_field</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>A field has no value.</td>
 </tr>
 <tr class="odd">
 <td><code>nonstandard_name_separator</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
-<td>A name-list field uses <code>with</code> or a comma before <code>and</code>.</td>
+<td>A creator list uses <code>with</code> or a comma before <code>and</code>.</td>
 </tr>
 <tr class="even">
 <td><code>invalid_suppression</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">warning</td>
 <td style="text-align: center;">none</td>
 <td>A suppression comment is malformed, misplaced, or obsolete.</td>
 </tr>
 <tr class="odd">
 <td><code>unsupported_escape</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">note</td>
 <td style="text-align: center;">none</td>
 <td>A character has no built-in LaTeX escape.</td>
 </tr>
 <tr class="even">
 <td><code>unsupported_construct</code></td>
 <td style="text-align: center;">yes</td>
+<td style="text-align: center;">note</td>
 <td style="text-align: center;">none</td>
 <td>Source was preserved because it could not be structured.</td>
 </tr>
 </tbody>
 </table>
-<p><code>syntax_error</code> has error severity. Most other structural problems are warnings. Preserved source and unsupported characters are notes.</p>
-<p><code>nonstandard_name_separator</code> checks <code>author</code>, <code>editor</code>, <code>translator</code>, and <code>collaborator</code> values. It only examines text outside nested braces, does not rewrite values, and does not inspect prose fields such as <code>title</code> or <code>note</code>.</p>
+<p>Warnings produce exit status <code>1</code>; errors produce exit status <code>2</code>. Notes are still diagnostics and therefore also make <code>check</code> return <code>1</code> when they are reported. See <a href="./configuration.html">Configuration</a> for changing the selection.</p>
 </section>
 <section id="inline-suppressions" class="level2">
 <h2 class="anchored" data-anchor-id="inline-suppressions">Inline suppressions</h2>
-<p>A standalone <code>% biblint-ignore &lt;rule&gt; [&lt;rule&gt; ...][: &lt;reason&gt;]</code> comment suppresses the named rules for the next BibTeX entry:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">% biblint-ignore nonstandard_name_separator duplicate_field</span></span>
+<p>Place a standalone <code>% biblint-ignore</code> comment immediately before the entry it belongs to. Name one or more rules, and optionally add a reason after <code>:</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bibtex code-with-copy"><code class="sourceCode bibtex"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">% biblint-ignore nonstandard_name_separator duplicate_field: legacy source</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">@book</span>{<span class="ot">garfinkel1997</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">author</span> = {Simson Garfinkel with Gene Spafford},</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The reason after <code>:</code> is optional. Multiple comments before one entry are also combined. Suppressions cannot hide syntax errors or whole-file formatting diagnostics. Malformed, misplaced, or unused directives are reported by <code>invalid_suppression</code>.</p>
-<p>Formatting is not enabled for <code>check</code> by default because it is a mechanical rewrite rather than a content diagnostic. Use <code>check --format</code> to include it, select <code>formatting</code> in <code>biblint.toml</code>, or use <code>format --check</code> as a formatting-only gate.</p>
+<p>The directive applies only to the next BibTeX entry. Multiple directives before one entry are combined. Suppressions cannot hide syntax errors or whole-file formatting diagnostics, and malformed, misplaced, or unused directives are reported by <code>invalid_suppression</code>.</p>
+<p><code>nonstandard_name_separator</code> checks <code>author</code>, <code>editor</code>, <code>translator</code>, and <code>collaborator</code> values. It only examines text outside nested braces and does not rewrite values. A literal phrase such as <code>Smith with Jones</code> can be protected by bracing the intended literal name.</p>
 </section>
-<section id="selecting-rules" class="level2">
-<h2 class="anchored" data-anchor-id="selecting-rules">Selecting rules</h2>
+<section id="select-rules" class="level2">
+<h2 class="anchored" data-anchor-id="select-rules">Select rules</h2>
+<p>Use <code>select</code> to replace the default set, <code>extend-select</code> to add to it, and <code>ignore</code> to disable a rule regardless of how it was selected:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"duplicate_key"</span><span class="op">]</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key_format"</span><span class="op">,</span> <span class="st">"duplicate_doi"</span><span class="op">]</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">ignore</span> <span class="op">=</span> <span class="op">[</span><span class="st">"unsupported_escape"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>select</code> replaces the default set. <code>extend-select</code> adds rules, and <code>ignore</code> takes precedence. Use <code>all</code> as a wildcard. Per-file exceptions use the same rule names:</p>
+<p>Use <code>all</code> as a wildcard. Per-file exceptions use the same rule names:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.per-file-ignores]</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">"generated/**"</span> <span class="op">=</span> <span class="op">[</span><span class="st">"formatting"</span><span class="op">,</span> <span class="st">"unsupported_construct"</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Formatting is not enabled for <code>check</code> by default because it is a mechanical rewrite rather than a content diagnostic. For a one-off formatting check, add <code>--format</code> to the command. For a formatting-only gate, use <code>biblint format &lt;path&gt; --check</code>.</p>
 </section>
 <section id="project-level-checks" class="level2">
 <h2 class="anchored" data-anchor-id="project-level-checks">Project-level checks</h2>
-<p>When checking a directory or multiple files, biblint also detects duplicates across files. DOI, citation, and abstract rules are disabled by default. Enable only the comparisons useful for the project.</p>
+<p>When checking a directory or multiple files, biblint also detects duplicates across files. DOI, citation, and abstract comparisons are disabled by default; enable only the comparisons useful for the project. A single explicit file gets single-file checks and does not create a project-wide comparison.</p>
 </section>
 <section id="key-format-checks" class="level2">
 <h2 class="anchored" data-anchor-id="key-format-checks">Key-format checks</h2>
-<p><code>key_format</code> is disabled by default because changing a citation key can break references elsewhere. Enable it explicitly:</p>
+<p><code>key_format</code> is disabled by default because changing a citation key can break references elsewhere. Enable it explicitly to report suggestions:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint]</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">extend-select</span> <span class="op">=</span> <span class="op">[</span><span class="st">"key_format"</span><span class="op">]</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">[lint.key-format]</span></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="dt">style</span> <span class="op">=</span> <span class="st">"better-bibtex"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The rule reports a suggestion but does not rename keys automatically. See <a href="./key-generation.html">Citekey generation</a> to configure the formula.</p>
+<p>The rule reports a suggestion but does not rename keys automatically. See <a href="./key-generation.html">Citekey generation</a> to configure the formula and, if desired, apply generated keys through the formatter.</p>
 
 
 </section>
