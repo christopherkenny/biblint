@@ -1,6 +1,7 @@
 [package]
 name = "biblint-syntax"
 description = "Lossless-enough BibTeX parsing for biblint"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

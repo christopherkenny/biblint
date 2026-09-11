@@ -6,7 +6,13 @@ It checks syntax and bibliography quality, normalizes formatting, and keeps the 
 ## Install
 
 You need Rust 1.88 or newer.
-Install the latest source directly from GitHub:
+Install the latest published release from crates.io:
+
+```console
+cargo install biblint
+```
+
+To try the latest development version directly from GitHub:
 
 ```console
 cargo install --git https://github.com/christopherkenny/biblint.git --package biblint --bin biblint
